@@ -1,0 +1,45 @@
+import { Link, NavLink } from 'react-router-dom';
+import { Pizza, ShoppingCart } from 'phosphor-react';
+import { useCart } from '../context/CartContext';
+import './Header.css';
+
+const Header = () => {
+    const { cartCount } = useCart();
+
+    return (
+        <header className="header">
+            <div className="container header-container">
+                <Link to="/" className="logo">
+                    <div className="logo-icon">
+                        <Pizza size={32} weight="fill" />
+                    </div>
+                    <span className="logo-text">Pizza<span className="highlight">Slice</span></span>
+                </Link>
+
+                <nav className="nav-menu">
+                    <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                        Home
+                    </NavLink>
+                    <NavLink to="/menu" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                        Menu
+                    </NavLink>
+                    <NavLink to="/about" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                        About
+                    </NavLink>
+                    <NavLink to="/contact" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                        Contact
+                    </NavLink>
+                </nav>
+
+                <div className="header-actions">
+                    <Link to="/cart" className="cart-btn" aria-label="Cart">
+                        <ShoppingCart size={24} weight="bold" />
+                        <span className="cart-count">{cartCount}</span>
+                    </Link>
+                </div>
+            </div>
+        </header>
+    );
+};
+
+export default Header;
