@@ -131,3 +131,75 @@
         /* Mobile menu to be implemented later if needed */
     }
 }
+
+/* Profile Button - same as cart button */
+.profile-btn {
+    background: var(--bg-body);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+    transition: var(--transition);
+}
+
+.profile-btn:hover {
+    background: var(--primary);
+    color: var(--text-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255, 87, 34, 0.2);
+}
+
+/* Auth Buttons */
+.auth-buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.login-btn,
+.register-btn {
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: var(--transition);
+    font-size: 0.95rem;
+    text-decoration: none;
+}
+
+.login-btn {
+    color: var(--text-main);
+    background: transparent;
+    border: 1px solid transparent;
+    /* Ensure border exists for layout stability */
+}
+
+.login-btn:hover {
+    color: var(--primary);
+    background: rgba(255, 87, 34, 0.05);
+    /* Subtle hover effect */
+}
+
+.register-btn {
+    background: var(--primary);
+    color: var(--text-light);
+    box-shadow: 0 4px 10px rgba(255, 87, 34, 0.3);
+}
+
+.register-btn:hover {
+    background: var(--primary-dark);
+    color: #ffffff;
+    /* Ensure text is visible on dark background */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(255, 87, 34, 0.4);
+}
+
+@media (max-width: 768px) {
+    .auth-buttons {
+        display: none;
+        /* Hide on mobile for now or handle differently */
+    }
+}

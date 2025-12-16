@@ -1,10 +1,12 @@
 import { Link, NavLink } from 'react-router-dom';
-import { Pizza, ShoppingCart } from 'phosphor-react';
+import { Pizza, ShoppingCart, User } from 'phosphor-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
 const Header = () => {
     const { cartCount } = useCart();
+    const { user } = useAuth();
 
     return (
         <header className="header">
@@ -36,6 +38,21 @@ const Header = () => {
                         <ShoppingCart size={24} weight="bold" />
                         <span className="cart-count">{cartCount}</span>
                     </Link>
+
+                    {user ? (
+                        <Link to="/profile" className="profile-btn" aria-label="Profile">
+                            <User size={24} weight="bold" />
+                        </Link>
+                    ) : (
+                        <div className="auth-buttons">
+                            <Link to="/login" className="login-btn">
+                                Login
+                            </Link>
+                            <Link to="/signup" className="register-btn">
+                                Register
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </header>

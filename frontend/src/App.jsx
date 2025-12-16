@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Checkout from './pages/Checkout';
 import EmailVerify from './pages/EmailVerify';
+import Profile from './pages/Profile';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
@@ -36,6 +37,7 @@ function App() {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/verify-email" element={<EmailVerify />} />
+                <Route path="/profile" element={<Profile />} />
               </Routes>
             </main>
             <Footer />
