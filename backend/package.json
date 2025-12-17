@@ -1,0 +1,16 @@
+{
+   "name": "pizza-backend",
+   "version": "1.0.0",
+   "type": "module",
+   "scripts": {
+      "start": "node index.js"
+   },
+   "dependencies": {
+      "bcrypt": "^6.0.0",
+      "cors": "^2.8.5",
+      "express": "^5.2.1",
+      "express-session": "^1.18.2",
+      "sqlite3": "^5.1.7",
+      "svg-captcha": "^1.4.0"
+   }
+}
