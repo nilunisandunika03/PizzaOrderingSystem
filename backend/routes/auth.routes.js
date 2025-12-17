@@ -58,7 +58,7 @@ router.post('/register', authLimiter, [
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, fullName, captcha } = req.body;
+    const { email, password, fullName, captcha, address } = req.body;
 
     // Validate Captcha
     if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
@@ -86,7 +86,8 @@ router.post('/register', authLimiter, [
             email,
             password_hash,
             full_name: fullName,
-            verification_token
+            verification_token,
+            address
         });
 
         // Send Verification Email
@@ -224,11 +225,48 @@ router.post('/logout', (req, res) => {
 router.get('/me', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findByPk(req.session.userId, {
-            attributes: ['id', 'full_name', 'email', 'is_verified']
+            attributes: ['id', 'full_name', 'email', 'is_verified', 'address']
         });
         res.json({ user });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user' });
+    }
+});
+
+// 8. Update Profile
+router.put('/profile', isAuthenticated, [
+    body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
+    // address is optional
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        const user = await User.findByPk(req.session.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const { fullName, address } = req.body;
+
+        if (fullName) user.full_name = fullName;
+        if (address !== undefined) user.address = address; // Allow empty string to clear address if needed
+
+        await user.save();
+
+        res.json({
+            message: 'Profile updated successfully',
+            user: {
+                id: user.id,
+                fullName: user.full_name,
+                email: user.email,
+                address: user.address,
+                is_verified: user.is_verified
+            }
+        });
+    } catch (error) {
+        console.error('Profile Update Error:', error);
+        res.status(500).json({ message: 'Error updating profile' });
     }
 });
 

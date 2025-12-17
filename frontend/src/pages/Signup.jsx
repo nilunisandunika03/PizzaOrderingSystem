@@ -9,6 +9,7 @@ const Signup = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [address, setAddress] = useState('');
     const [captcha, setCaptcha] = useState('');
     const [captchaSvg, setCaptchaSvg] = useState('');
     const [error, setError] = useState('');
@@ -49,12 +50,13 @@ const Signup = () => {
         }
 
         try {
-            const res = await signup(name, email, password, captcha);
+            const res = await signup(name, email, password, captcha, address);
             setSuccess(res.message);
             // Clear form
             setName('');
             setEmail('');
             setPassword('');
+            setAddress('');
             setCaptcha('');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to sign up');
@@ -104,6 +106,16 @@ const Signup = () => {
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="john@example.com"
                                 required
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Home Address</label>
+                            <textarea
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="123 Pizza Street, NYC"
+                                rows="2"
+                                style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ddd' }}
                             />
                         </div>
                         <div className="form-group">

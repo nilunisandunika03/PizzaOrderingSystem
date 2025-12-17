@@ -42,6 +42,10 @@ const User = sequelize.define('User', {
     last_login: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    address: {
+        type: DataTypes.TEXT,
+        allowNull: true
     }
 }, {
     timestamps: true
