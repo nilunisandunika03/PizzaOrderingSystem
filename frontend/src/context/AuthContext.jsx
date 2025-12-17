@@ -40,9 +40,15 @@ export const AuthProvider = ({ children }) => {
         return response.data;
     };
 
-    const signup = async (name, email, password, captcha) => {
-        const response = await api.post('/register', { fullName: name, email, password, captcha });
+    const signup = async (name, email, password, captcha, address) => {
+        const response = await api.post('/register', { fullName: name, email, password, captcha, address });
         return response.data; // Expect message about checking email
+    };
+
+    const updateProfile = async (data) => {
+        const response = await api.put('/profile', data);
+        setUser(response.data.user);
+        return response.data;
     };
 
     const logout = async () => {
@@ -55,7 +61,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, verifyOtp, signup, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, verifyOtp, signup, logout, loading, updateProfile }}>
             {!loading && children}
         </AuthContext.Provider>
     );
