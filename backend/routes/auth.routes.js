@@ -40,8 +40,7 @@ router.get('/captcha', (req, res) => {
         background: '#cc9966'
     });
     req.session.captcha = captcha.text;
-    res.type('svg');
-    res.status(200).send(captcha.data);
+    res.status(200).json({ svg: captcha.data });
 });
 
 // 1.1 Verify CAPTCHA (Generic)

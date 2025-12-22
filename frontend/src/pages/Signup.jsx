@@ -22,7 +22,7 @@ const Signup = () => {
     const fetchCaptcha = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/auth/captcha', { withCredentials: true });
-            setCaptchaSvg(response.data);
+            setCaptchaSvg(response.data.svg);
         } catch (err) {
             console.error('Failed to load captcha');
         }
