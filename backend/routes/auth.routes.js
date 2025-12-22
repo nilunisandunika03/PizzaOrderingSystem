@@ -3,7 +3,7 @@ const router = express.Router();
 const svgCaptcha = require('svg-captcha');
 const otpGenerator = require('otp-generator');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
+const User = require('../database/models/User');
 const { sendEmail } = require('../utils/email');
 const { isAuthenticated } = require('../middleware/auth.middleware');
 const rateLimit = require('express-rate-limit');
@@ -89,7 +89,8 @@ router.post('/register', authLimiter, [
             full_name: fullName,
             verification_token,
             verification_token_expires,
-            address
+            address,
+            role: 'customer' // Explicitly set role
         });
 
         // Clear captcha only after user creation is successful
@@ -221,7 +222,8 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
                 user: {
                     id: user._id,
                     fullName: user.full_name,
-                    email: user.email
+                    email: user.email,
+                    role: user.role
                 }
             });
         });
@@ -244,7 +246,7 @@ router.post('/logout', (req, res) => {
 // 7. Check Auth Status
 router.get('/me', isAuthenticated, async (req, res) => {
     try {
-        const user = await User.findById(req.session.userId).select('full_name email is_verified address');
+        const user = await User.findById(req.session.userId).select('full_name email is_verified address role');
         res.json({ user });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user' });

@@ -12,6 +12,7 @@ import Signup from './pages/Signup';
 import Checkout from './pages/Checkout';
 import EmailVerify from './pages/EmailVerify';
 import Profile from './pages/Profile';
+import AdminDashboard from './pages/AdminDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import { CartProvider } from './context/CartContext';
@@ -40,6 +41,7 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/verify-email" element={<EmailVerify />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
               </Routes>

@@ -4,7 +4,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoSanitize = require('express-mongo-sanitize');
-const { connectDB } = require('./config/database');
+const { connectDB } = require('./database/database');
 const path = require('path');
 
 require('dotenv').config();

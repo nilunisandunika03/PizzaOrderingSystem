@@ -58,8 +58,12 @@ const Login = () => {
         setLoading(true);
 
         try {
-            await verifyOtp(otp);
-            navigate(from, { replace: true });
+            const data = await verifyOtp(otp);
+            if (data.user.role === 'admin') {
+                navigate('/admin', { replace: true });
+            } else {
+                navigate(from, { replace: true });
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Verification failed');
         } finally {

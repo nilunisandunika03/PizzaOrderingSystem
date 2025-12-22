@@ -24,8 +24,6 @@
         "mongoose": "^9.0.2",
         "nodemailer": "^6.9.13",
         "otp-generator": "^4.0.1",
-        "sequelize": "^6.37.3",
-        "sqlite3": "^5.1.7",
         "svg-captcha": "^1.4.0",
         "zxcvbn": "^4.4.2"
     },

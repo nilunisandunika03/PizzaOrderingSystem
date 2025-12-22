@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema({
     lock_until: {
         type: Date,
         default: null
+    },
+    role: {
+        type: String,
+        enum: ['customer', 'admin', 'deliverer'],
+        default: 'customer'
     }
 }, {
     timestamps: true
