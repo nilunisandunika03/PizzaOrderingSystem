@@ -1,54 +1,78 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const mongoose = require('mongoose');
+const argon2 = require('argon2');
 
-const User = sequelize.define('User', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
+const userSchema = new mongoose.Schema({
     email: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        type: String,
+        required: true,
         unique: true,
-        validate: {
-            isEmail: true
-        }
+        lowercase: true,
+        trim: true
     },
     password_hash: {
-        type: DataTypes.STRING,
-        allowNull: false
+        type: String,
+        required: true
     },
     full_name: {
-        type: DataTypes.STRING,
-        allowNull: false
+        type: String,
+        required: true
     },
     is_verified: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
+        type: Boolean,
+        default: false
     },
     verification_token: {
-        type: DataTypes.STRING,
-        allowNull: true
+        type: String,
+        default: null
+    },
+    verification_token_expires: {
+        type: Date,
+        default: null
     },
     mfa_secret: {
-        type: DataTypes.STRING,
-        allowNull: true
+        type: String,
+        default: null
     },
     mfa_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false // Will be enabled after first login setup or explicitly
+        type: Boolean,
+        default: false
     },
     last_login: {
-        type: DataTypes.DATE,
-        allowNull: true
+        type: Date,
+        default: null
     },
     address: {
-        type: DataTypes.TEXT,
-        allowNull: true
+        type: String,
+        default: null
+    },
+    failed_login_attempts: {
+        type: Number,
+        default: 0
+    },
+    lock_until: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true
 });
+
+// Hash password before saving if it's new or modified
+userSchema.pre('save', async function () {
+    if (!this.isModified('password_hash')) return;
+    this.password_hash = await argon2.hash(this.password_hash, {
+        type: argon2.argon2id,
+        memoryCost: 2 ** 16,
+        timeCost: 3,
+        parallelism: 1
+    });
+});
+
+// Method to check password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    return await argon2.verify(this.password_hash, candidatePassword);
+};
+
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

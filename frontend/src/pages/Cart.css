@@ -58,7 +58,14 @@
 
 .item-details h3 {
     font-size: 1.1rem;
-    margin-bottom: 8px;
+    margin-bottom: 2px;
+}
+
+.item-customization {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-weight: 500;
 }
 
 .quantity-controls {
@@ -140,6 +147,46 @@
 .order-summary h2 {
     font-size: 1.5rem;
     margin-bottom: 24px;
+}
+
+.order-type-selection {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.order-type-selection span {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-main);
+}
+
+.type-toggle {
+    display: flex;
+    background: #f3f4f6;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.type-option {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: #6b7280;
+    border: none;
+}
+
+.type-option.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .summary-row {

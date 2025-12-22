@@ -1,50 +1,36 @@
 const nodemailer = require('nodemailer');
 
-// Create a transporter
-// For development, we'll try to use Ethereal, or just log to console if it fails
-let transporter;
-
-async function createTransporter() {
-    // For a real app, you'd use SendGrid, Mailgun, or Gmail SMTP
-    // Here we use Ethereal for testing
-    const testAccount = await nodemailer.createTestAccount();
-
-    transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: testAccount.user, // generated ethereal user
-            pass: testAccount.pass, // generated ethereal password
-        },
-    });
-}
-
-createTransporter().catch(console.error);
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
+    secure: Number(process.env.EMAIL_PORT) === 465, // true for 465, false for 587/25
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+        rejectUnauthorized: false
+    }
+});
 
 const sendEmail = async (to, subject, html) => {
-    console.log(`[MOCK EMAIL] To: ${to} | Subject: ${subject}`);
-    console.log(`[MOCK EMAIL BODY] ${html}`);
-
-    if (!transporter) {
-        await createTransporter();
-    }
-
     try {
-        const info = await transporter.sendMail({
-            from: '"Secure App" <noreply@example.com>',
+        const mailOptions = {
+            from: `"Pizza Ordering System" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             html,
-        });
+        };
 
-        console.log("Message sent: %s", info.messageId);
-        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Email sent: ' + info.response);
         return info;
     } catch (error) {
-        console.error("Error sending email:", error);
-        // Fallback: Just return true so flow continues in dev
-        return true;
+        console.error('Error sending email:', error);
+        // In local development, we might not want to throw to avoid blocking the flow
+        if (process.env.NODE_ENV === 'production') {
+            throw error;
+        }
     }
 };
 

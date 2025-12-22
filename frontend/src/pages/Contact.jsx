@@ -1,7 +1,45 @@
 import { Envelope, Phone, MapPin } from 'phosphor-react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import './Contact.css';
 
 const Contact = () => {
+    const [captcha, setCaptcha] = useState('');
+    const [captchaSvg, setCaptchaSvg] = useState('');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const fetchCaptcha = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/api/auth/captcha', { withCredentials: true });
+            setCaptchaSvg(response.data);
+        } catch (err) {
+            console.error('Failed to load captcha');
+        }
+    };
+
+    useEffect(() => {
+        fetchCaptcha();
+    }, []);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
+        setLoading(true);
+
+        try {
+            await axios.post('http://localhost:3001/api/auth/verify-captcha', { captcha }, { withCredentials: true });
+            setSuccess('Message sent successfully! We will get back to you soon.');
+            setCaptcha('');
+        } catch (err) {
+            setError(err.response?.data?.message || 'CAPTCHA verification failed');
+            fetchCaptcha();
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
         <div className="contact-page">
             <div className="contact-header">
@@ -35,7 +73,9 @@ const Contact = () => {
 
                 <div className="contact-form-section">
                     <h2>Send Message</h2>
-                    <form className="contact-form" onSubmit={(e) => e.preventDefault()}>
+                    {error && <div className="alert error">{error}</div>}
+                    {success && <div className="alert success">{success}</div>}
+                    <form className="contact-form" onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label>Name</label>
                             <input type="text" placeholder="Your Name" />
@@ -48,7 +88,23 @@ const Contact = () => {
                             <label>Message</label>
                             <textarea rows="5" placeholder="How can we help?"></textarea>
                         </div>
-                        <button className="btn btn-primary">Send Message</button>
+                        <div className="form-group">
+                            <label>Captcha</label>
+                            <div className="captcha-container">
+                                <div dangerouslySetInnerHTML={{ __html: captchaSvg }} className="captcha-img" />
+                                <button type="button" onClick={fetchCaptcha} className="btn-icon">↻</button>
+                            </div>
+                            <input
+                                type="text"
+                                value={captcha}
+                                onChange={(e) => setCaptcha(e.target.value)}
+                                placeholder="Enter characters exactly"
+                                required
+                            />
+                        </div>
+                        <button className="btn btn-primary" disabled={loading}>
+                            {loading ? 'Sending...' : 'Send Message'}
+                        </button>
                     </form>
                 </div>
             </div>

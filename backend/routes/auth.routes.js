@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
 const svgCaptcha = require('svg-captcha');
 const otpGenerator = require('otp-generator');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { sendEmail } = require('../utils/email');
 const { isAuthenticated } = require('../middleware/auth.middleware');
-const { Op } = require('sequelize');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 
 // --- Helper Functions ---
 const generateOTP = () => otpGenerator.generate(6, { digits: true, lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
@@ -16,7 +15,7 @@ const generateOTP = () => otpGenerator.generate(6, { digits: true, lowerCaseAlph
 // --- Rate Limiters ---
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // Limit each IP to 20 requests per windowMs
+    max: 20,
     message: { message: 'Too many attempts from this IP, please try again after 15 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -24,8 +23,8 @@ const authLimiter = rateLimit({
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 login attempts per window
-    message: { message: 'Too many login attempts, please try again later' },
+    max: 5, // Requirement: 5 attempts / 15 min
+    message: { message: 'Too many login attempts, please try again after 15 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -40,10 +39,21 @@ router.get('/captcha', (req, res) => {
         color: true,
         background: '#cc9966'
     });
-    // Store captcha text in session for validation
     req.session.captcha = captcha.text;
     res.type('svg');
     res.status(200).send(captcha.data);
+});
+
+// 1.1 Verify CAPTCHA (Generic)
+router.post('/verify-captcha', (req, res) => {
+    const { captcha } = req.body;
+    if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
+        return res.status(400).json({ message: 'Invalid CAPTCHA' });
+    }
+    // We don't clear it here so it can be used for the next step if immediate, 
+    // but usually we should clear it. For generic "are you human" checks, clearing is safer.
+    req.session.captcha = null;
+    res.status(200).json({ message: 'CAPTCHA verified' });
 });
 
 // 2. Register
@@ -60,41 +70,35 @@ router.post('/register', authLimiter, [
 
     const { email, password, fullName, captcha, address } = req.body;
 
-    // Validate Captcha
-    if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
-        return res.status(400).json({ message: 'Invalid CAPTCHA' });
-    }
-    // Clear captcha immediately after use
-    req.session.captcha = null;
-
     try {
-        // Check existing user
-        const existingUser = await User.findOne({ where: { email } });
+        if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
+            return res.status(400).json({ message: 'Invalid CAPTCHA' });
+        }
+
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'Email already registered' });
         }
 
-        // Hash Password
-        const saltRounds = 12; // Secure salt rounds
-        const password_hash = await bcrypt.hash(password, saltRounds);
+        const verification_token = crypto.randomBytes(32).toString('hex');
+        const verification_token_expires = Date.now() + 3600000; // 1 hour expiry
 
-        // Generate Verification Token
-        const verification_token = require('crypto').randomBytes(32).toString('hex');
-
-        // Create User
         await User.create({
             email,
-            password_hash,
+            password_hash: password, // Hashed automatically in pre-save hook
             full_name: fullName,
             verification_token,
+            verification_token_expires,
             address
         });
 
-        // Send Verification Email
+        // Clear captcha only after user creation is successful
+        req.session.captcha = null;
+
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
         await sendEmail(email, 'Verify your email', `
             <h3>Welcome to Appppp!</h3>
-            <p>Please click the link below to verify your email address:</p>
+            <p>Please click the link below to verify your email address (expires in 1 hour):</p>
             <a href="${verifyLink}">Verify Email</a>
         `);
 
@@ -111,11 +115,16 @@ router.post('/verify-email', authLimiter, async (req, res) => {
     if (!token) return res.status(400).json({ message: 'Missing token' });
 
     try {
-        const user = await User.findOne({ where: { verification_token: token } });
+        const user = await User.findOne({
+            verification_token: token,
+            verification_token_expires: { $gt: Date.now() }
+        });
+
         if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
 
         user.is_verified = true;
-        user.verification_token = null; // Clear token
+        user.verification_token = null;
+        user.verification_token_expires = null;
         await user.save();
 
         res.status(200).json({ message: 'Email verified successfully. You can now login.' });
@@ -128,37 +137,54 @@ router.post('/verify-email', authLimiter, async (req, res) => {
 router.post('/login', loginLimiter, [
     body('email').isEmail(),
     body('password').notEmpty(),
-    // body('captcha').notEmpty() // Allow bypassing captcha for easier testing if needed
+    body('captcha').notEmpty()
 ], async (req, res) => {
     const { email, password, captcha } = req.body;
 
-    // Enforce Captcha on Login as per requirements
-    if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
-        return res.status(400).json({ message: 'Invalid CAPTCHA' });
-    }
-    req.session.captcha = null;
-
     try {
-        const user = await User.findOne({ where: { email } });
+        if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
+            return res.status(400).json({ message: 'Invalid CAPTCHA' });
+        }
+
+        const user = await User.findOne({ email });
         if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+        // ... existing login logic ...
+        // I will keep the rest of the block as it was in my mind, 
+        // but I should probably just replace the start.
+        // Actually I'll replace the whole block to be sure.
+
+        if (user.lock_until && user.lock_until > Date.now()) {
+            return res.status(403).json({
+                message: `Account locked due to multiple failed attempts. Try again later.`
+            });
+        }
 
         if (!user.is_verified) return res.status(401).json({ message: 'Please verify your email first' });
 
-        // Check Password
-        const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+        const isMatch = await user.comparePassword(password);
 
-        // Generate OTP
+        if (!isMatch) {
+            user.failed_login_attempts += 1;
+            if (user.failed_login_attempts >= 5) {
+                user.lock_until = Date.now() + 15 * 60 * 1000;
+            }
+            await user.save();
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        user.failed_login_attempts = 0;
+        user.lock_until = null;
+
         const otp = generateOTP();
-
         user.mfa_secret = otp;
         await user.save();
 
-        // Send OTP via Email
-        await sendEmail(user.email, 'Your Login OTP', `<p>Your verification code is: <strong>${otp}</strong></p>`);
+        // Clear captcha only on successful credentials and OTP generation
+        req.session.captcha = null;
 
-        // Store pre-auth user ID in session temporarily
-        req.session.preAuthUserId = user.id;
+        await sendEmail(user.email, 'Your Login OTP', `<p>Your verification code is: <strong>${otp}</strong></p>`);
+        req.session.preAuthUserId = user._id;
 
         res.status(200).json({ message: 'OTP sent to email', requireMfa: true });
     } catch (error) {
@@ -175,23 +201,17 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
     if (!userId) return res.status(401).json({ message: 'Session expired. Please login again.' });
 
     try {
-        const user = await User.findByPk(userId);
+        const user = await User.findById(userId);
         if (!user) return res.status(401).json({ message: 'User not found' });
 
-        // Check OTP
         if (user.mfa_secret !== otp) {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
 
-        // OTP is valid - Secure the session
-        // Regenerate session to prevent fixation attacks
         req.session.regenerate(async (err) => {
             if (err) return res.status(500).json({ message: 'Session error' });
 
-            // Set Authenticated Session
-            req.session.userId = user.id;
-
-            // Clear OTP
+            req.session.userId = user._id;
             user.mfa_secret = null;
             user.last_login = new Date();
             await user.save();
@@ -199,7 +219,7 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
             res.status(200).json({
                 message: 'Login successful',
                 user: {
-                    id: user.id,
+                    id: user._id,
                     fullName: user.full_name,
                     email: user.email
                 }
@@ -216,17 +236,15 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
 router.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) return res.status(500).json({ message: 'Logout failed' });
-        res.clearCookie('connect.sid'); // Default session cookie name
+        res.clearCookie('sessionId');
         res.json({ message: 'Logged out successfully' });
     });
 });
 
-// 7. Check Auth Status (for frontend init)
+// 7. Check Auth Status
 router.get('/me', isAuthenticated, async (req, res) => {
     try {
-        const user = await User.findByPk(req.session.userId, {
-            attributes: ['id', 'full_name', 'email', 'is_verified', 'address']
-        });
+        const user = await User.findById(req.session.userId).select('full_name email is_verified address');
         res.json({ user });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user' });
@@ -236,7 +254,6 @@ router.get('/me', isAuthenticated, async (req, res) => {
 // 8. Update Profile
 router.put('/profile', isAuthenticated, [
     body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
-    // address is optional
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -244,20 +261,20 @@ router.put('/profile', isAuthenticated, [
     }
 
     try {
-        const user = await User.findByPk(req.session.userId);
+        const user = await User.findById(req.session.userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const { fullName, address } = req.body;
 
         if (fullName) user.full_name = fullName;
-        if (address !== undefined) user.address = address; // Allow empty string to clear address if needed
+        if (address !== undefined) user.address = address;
 
         await user.save();
 
         res.json({
             message: 'Profile updated successfully',
             user: {
-                id: user.id,
+                id: user._id,
                 fullName: user.full_name,
                 email: user.email,
                 address: user.address,

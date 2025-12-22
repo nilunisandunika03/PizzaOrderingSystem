@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import './Cart.css';
 
 const Cart = () => {
-    const { cartItems, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
+    const { cartItems, removeFromCart, updateQuantity, cartTotal, clearCart, orderType, setOrderType, deliveryFee } = useCart();
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -16,6 +16,8 @@ const Cart = () => {
             navigate('/login', { state: { from: { pathname: '/checkout' } } });
         }
     };
+
+    const finalTotal = cartTotal + deliveryFee;
 
     if (cartItems.length === 0) {
         return (
@@ -37,26 +39,29 @@ const Cart = () => {
                 <div className="cart-grid">
                     <div className="cart-items">
                         {cartItems.map(item => (
-                            <div key={item.id} className="cart-item">
+                            <div key={`${item.id}-${item.selectedSize}-${item.selectedCrust}`} className="cart-item">
                                 <div className="item-image">
                                     <img src={item.image} alt={item.name} />
                                 </div>
                                 <div className="item-details">
                                     <h3>{item.name}</h3>
+                                    <p className="item-customization">
+                                        {item.selectedSize} • {item.selectedCrust}
+                                    </p>
                                     <div className="quantity-controls">
-                                        <button onClick={() => updateQuantity(item.id, -1)} disabled={item.quantity <= 1}>
+                                        <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedCrust, -1)} disabled={item.quantity <= 1}>
                                             <Minus size={16} />
                                         </button>
                                         <span>{item.quantity}</span>
-                                        <button onClick={() => updateQuantity(item.id, 1)}>
+                                        <button onClick={() => updateQuantity(item.id, item.selectedSize, item.selectedCrust, 1)}>
                                             <Plus size={16} />
                                         </button>
                                     </div>
                                 </div>
                                 <div className="item-price">
-                                    ${(item.price * item.quantity).toFixed(2)}
+                                    Rs. {(item.price * item.quantity).toLocaleString()}
                                 </div>
-                                <button className="remove-btn" onClick={() => removeFromCart(item.id)}>
+                                <button className="remove-btn" onClick={() => removeFromCart(item.id, item.selectedSize, item.selectedCrust)}>
                                     <Trash size={20} />
                                 </button>
                             </div>
@@ -68,18 +73,37 @@ const Cart = () => {
 
                     <div className="order-summary">
                         <h2>Order Summary</h2>
+
+                        <div className="order-type-selection">
+                            <span>How would you like your pizza?</span>
+                            <div className="type-toggle">
+                                <button
+                                    className={`type-option ${orderType === 'delivery' ? 'active' : ''}`}
+                                    onClick={() => setOrderType('delivery')}
+                                >
+                                    Delivery
+                                </button>
+                                <button
+                                    className={`type-option ${orderType === 'takeaway' ? 'active' : ''}`}
+                                    onClick={() => setOrderType('takeaway')}
+                                >
+                                    Takeaway
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="summary-row">
                             <span>Subtotal</span>
-                            <span>${cartTotal.toFixed(2)}</span>
+                            <span>Rs. {cartTotal.toLocaleString()}</span>
                         </div>
                         <div className="summary-row">
                             <span>Delivery Fee</span>
-                            <span>$5.00</span>
+                            <span>{deliveryFee > 0 ? `Rs. ${deliveryFee}` : 'FREE'}</span>
                         </div>
                         <div className="summary-divider"></div>
                         <div className="summary-row total">
                             <span>Total</span>
-                            <span>${(cartTotal + 5).toFixed(2)}</span>
+                            <span>Rs. {finalTotal.toLocaleString()}</span>
                         </div>
                         <button className="btn btn-primary checkout-btn" onClick={handleCheckout}>
                             Proceed to Checkout <ArrowRight weight="bold" />

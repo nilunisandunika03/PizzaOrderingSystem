@@ -190,8 +190,8 @@
 }
 
 .register-btn:hover {
-    background: var(--primary-dark);
-    color: #ffffff;
+    color: var(--primary);
+    background: rgba(255, 87, 34, 0.05);
     /* Ensure text is visible on dark background */
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(255, 87, 34, 0.4);
