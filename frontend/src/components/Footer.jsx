@@ -23,8 +23,8 @@ const Footer = () => {
                     <ul>
                         <li><a href="/">Home</a></li>
                         <li><a href="/menu">Menu</a></li>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Contact</a></li>
+                        <li><a href="/about">About Us</a></li>
+                        <li><a href="/contact">Contact</a></li>
                     </ul>
                 </div>
 
@@ -46,7 +46,7 @@ const Footer = () => {
             </div>
             <div className="footer-bottom">
                 <div className="container">
-                    <p>&copy; 2024 PizzaSlice. All rights reserved.</p>
+                    <p>&copy; 2025 PizzaSlice. All rights reserved.</p>
                 </div>
             </div>
         </footer>
