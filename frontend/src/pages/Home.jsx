@@ -56,8 +56,8 @@ const Home = () => {
                         <h2>Ready for a Slice?</h2>
                         <p>Order online for fast delivery or curb-side pickup.</p>
                         <div className="cta-actions">
-                            <button className="btn btn-primary">Order Now</button>
-                            <button className="btn btn-secondary">Our Menu</button>
+                            <button className="btn btn-primary" onClick={() => window.location.href = "/menu"}>Order Now</button>
+                            <button className="btn btn-secondary" onClick={() => window.location.href = "/menu"}>Our Menu</button>
                         </div>
                     </div>
                 </div>

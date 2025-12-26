@@ -21,12 +21,12 @@ const Hero = () => {
                         Experience the taste of perfection.
                     </p>
                     <div className="hero-actions">
-                        <Link to="/menu" className="btn btn-primary">
+                       <a href="#featured" className="btn btn-primary">
                             Order Now <ArrowRight weight="bold" />
-                        </Link>
-                        <a href="#featured" className="btn btn-secondary">
-                            View Menu
                         </a>
+                        <Link to="/menu" className="btn btn-secondary">
+                            View Menu
+                        </Link>
                     </div>
 
                     <div className="stats">
