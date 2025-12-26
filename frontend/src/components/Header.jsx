@@ -40,9 +40,14 @@ const Header = () => {
                     </Link>
 
                     {user ? (
-                        <Link to="/profile" className="profile-btn" aria-label="Profile">
-                            <User size={24} weight="bold" />
-                        </Link>
+                        <div className="user-actions">
+                            <Link to="/orders" className="orders-btn" title="My Orders">
+                                <Clock size={24} weight="bold" />
+                            </Link>
+                            <Link to="/profile" className="profile-btn" aria-label="Profile">
+                                <User size={24} weight="bold" />
+                            </Link>
+                        </div>
                     ) : (
                         <div className="auth-buttons">
                             <Link to="/login" className="login-btn">

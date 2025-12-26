@@ -35,6 +35,24 @@
     transform: scale(1.02);
 }
 
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.orders-btn,
+.profile-btn {
+    transition: transform 0.2s;
+    color: var(--text-main);
+}
+
+.orders-btn:hover,
+.profile-btn:hover {
+    transform: scale(1.1);
+    color: var(--primary);
+}
+
 .logo-icon {
     color: var(--primary);
     display: flex;
