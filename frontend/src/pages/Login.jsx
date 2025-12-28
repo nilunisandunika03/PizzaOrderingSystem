@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
-import axios from 'axios';
+import api from '../api/axios';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -24,10 +24,10 @@ const Login = () => {
 
     const fetchCaptcha = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/auth/captcha', { withCredentials: true });
+            const response = await api.get('/captcha');
             setCaptchaSvg(response.data.svg);
         } catch (err) {
-            console.error('Failed to load captcha');
+            console.error('Failed to load captcha:', err.message);
         }
     };
 
