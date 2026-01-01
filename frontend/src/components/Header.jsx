@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { Pizza, ShoppingCart, User } from 'phosphor-react';
+import { Pizza, ShoppingCart, User, Clock } from 'phosphor-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import './Header.css';
