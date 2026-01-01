@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import './Cart.css';
 
 const Cart = () => {
-    const { cartItems, removeFromCart, updateQuantity, cartTotal, clearCart, orderType, setOrderType, deliveryFee } = useCart();
+    const { cartItems, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -16,8 +16,6 @@ const Cart = () => {
             navigate('/login', { state: { from: { pathname: '/checkout' } } });
         }
     };
-
-    const finalTotal = cartTotal + deliveryFee;
 
     if (cartItems.length === 0) {
         return (
@@ -74,36 +72,14 @@ const Cart = () => {
                     <div className="order-summary">
                         <h2>Order Summary</h2>
 
-                        <div className="order-type-selection">
-                            <span>How would you like your pizza?</span>
-                            <div className="type-toggle">
-                                <button
-                                    className={`type-option ${orderType === 'delivery' ? 'active' : ''}`}
-                                    onClick={() => setOrderType('delivery')}
-                                >
-                                    Delivery
-                                </button>
-                                <button
-                                    className={`type-option ${orderType === 'takeaway' ? 'active' : ''}`}
-                                    onClick={() => setOrderType('takeaway')}
-                                >
-                                    Takeaway
-                                </button>
-                            </div>
-                        </div>
-
                         <div className="summary-row">
                             <span>Subtotal</span>
                             <span>Rs. {cartTotal.toLocaleString()}</span>
                         </div>
-                        <div className="summary-row">
-                            <span>Delivery Fee</span>
-                            <span>{deliveryFee > 0 ? `Rs. ${deliveryFee}` : 'FREE'}</span>
-                        </div>
                         <div className="summary-divider"></div>
                         <div className="summary-row total">
                             <span>Total</span>
-                            <span>Rs. {finalTotal.toLocaleString()}</span>
+                            <span>Rs. {cartTotal.toLocaleString()}</span>
                         </div>
                         <button className="btn btn-primary checkout-btn" onClick={handleCheckout}>
                             Proceed to Checkout <ArrowRight weight="bold" />
