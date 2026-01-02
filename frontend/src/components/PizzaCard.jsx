@@ -9,21 +9,19 @@ const PizzaCard = ({ pizza }) => {
     const [size, setSize] = useState('Medium');
     const [crust, setCrust] = useState('Pan');
 
-    // Price Mapping
-    const sizePrices = {
-        'Personal': 850,
-        'Medium': 1590,
-        'Large': 2980
+    // Dynamic Price Mapping from DB
+    const getPriceForSize = (sizeName) => {
+        const sizeObj = pizza.sizes?.find(s => s.name === sizeName);
+        return pizza.base_price + (sizeObj ? sizeObj.price_modifier : 0);
     };
 
-    const crustSurcharges = {
-        'Pan': 0,
-        'Ultimate Cheese': 600,
-        'Sausage': 600
+    const getSurchargeForCrust = (crustName) => {
+        const crustObj = pizza.crusts?.find(c => c.name === crustName);
+        return crustObj ? crustObj.price_modifier : 0;
     };
 
-    const basePrice = sizePrices[size];
-    const surcharge = crustSurcharges[crust];
+    const basePrice = getPriceForSize(size);
+    const surcharge = getSurchargeForCrust(crust);
     const totalPrice = basePrice + surcharge;
 
     const handleAddToCart = () => {
@@ -55,18 +53,22 @@ const PizzaCard = ({ pizza }) => {
                     <div className="select-group">
                         <label>Select your crust</label>
                         <select value={crust} onChange={(e) => setCrust(e.target.value)}>
-                            <option value="Pan">Pan (Free)</option>
-                            <option value="Ultimate Cheese">Ultimate Cheese (+Rs. 600.00)</option>
-                            <option value="Sausage">Sausage (+Rs. 600.00)</option>
+                            {pizza.crusts?.map(c => (
+                                <option key={c.name} value={c.name}>
+                                    {c.name} {c.price_modifier > 0 ? `(+Rs. ${c.price_modifier.toFixed(2)})` : '(Free)'}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
                     <div className="select-group">
                         <label>Select Size</label>
                         <select value={size} onChange={(e) => setSize(e.target.value)}>
-                            <option value="Personal">Personal - {sizePrices['Personal'].toFixed(2)}</option>
-                            <option value="Medium">Medium - {sizePrices['Medium'].toFixed(2)}</option>
-                            <option value="Large">Large - {sizePrices['Large'].toFixed(2)}</option>
+                            {pizza.sizes?.map(s => (
+                                <option key={s.name} value={s.name}>
+                                    {s.name} - Rs. {(pizza.base_price + s.price_modifier).toFixed(2)}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>
