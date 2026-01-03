@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Truck, Package, Phone, MapPin, Clock, CreditCard, HouseLine } from 'phosphor-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import axios from 'axios';
+import api from '../api/axios';
 import './Checkout.css';
 
 const Checkout = () => {
@@ -17,7 +17,7 @@ const Checkout = () => {
         no: '',
         street: '',
         city: '',
-        state: '',
+        province: '',
         zipCode: '',
         contact1: '',
         contact2: ''
@@ -30,7 +30,7 @@ const Checkout = () => {
         name: '',
         number: '',
         expiry: '',
-        cvc: ''
+        cvv: ''
     });
 
     const [error, setError] = useState('');
@@ -59,12 +59,55 @@ const Checkout = () => {
         setStep('payment');
     };
 
+    // Format card number with spaces (XXXX XXXX XXXX)
+    const handleCardNumberChange = (e) => {
+        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        if (value.length > 12) value = value.slice(0, 12); // Limit to 12 digits
+
+        // Add spaces every 4 digits
+        let formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+
+        setCardDetails({ ...cardDetails, number: formattedValue });
+    };
+
     const handlePayment = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
         try {
+            // Validate Payment Inputs for New Cards
+            if (selectedCardIdx === 'new') {
+                const cleanNumber = cardDetails.number.replace(/\s/g, '');
+
+                // 1. Validate Card Number (12 digits)
+                if (cleanNumber.length !== 12) {
+                    throw new Error("Card number must be exactly 12 digits.");
+                }
+
+                // 2. Validate Expiry Date (Future MM/YY)
+                if (!/^\d{2}\/\d{2}$/.test(cardDetails.expiry)) {
+                    throw new Error("Expiry date must be in MM/YY format.");
+                }
+
+                const [month, year] = cardDetails.expiry.split('/').map(Number);
+                const now = new Date();
+                const currentYear = parseInt(now.getFullYear().toString().slice(-2));
+                const currentMonth = now.getMonth() + 1;
+
+                if (month < 1 || month > 12) {
+                    throw new Error("Invalid expiry month.");
+                }
+                if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                    throw new Error("Card has expired.");
+                }
+
+                // 3. Validate CVC (3 digits)
+                if (!/^\d{3}$/.test(cardDetails.cvv)) {
+                    throw new Error("CVV must be exactly 3 digits.");
+                }
+            }
+
             // Prepare Payment Info
             let paymentInfo = {};
             if (selectedCardIdx !== 'new' && user.savedCards && user.savedCards[selectedCardIdx]) {
@@ -76,10 +119,11 @@ const Checkout = () => {
                     saveCard: false // Already saved
                 };
             } else {
+                const cleanNumber = cardDetails.number.replace(/\s/g, '');
                 paymentInfo = {
                     method: 'card',
-                    last4: cardDetails.number.slice(-4),
-                    brand: 'Visa', // Simplification
+                    last4: cleanNumber.slice(-4),
+                    brand: 'Card',
                     expiry: cardDetails.expiry,
                     cardHolder: cardDetails.name,
                     saveCard: saveCard
@@ -89,7 +133,6 @@ const Checkout = () => {
             const orderData = {
                 items: cartItems,
                 subtotal: cartTotal,
-                tax: 0,
                 deliveryFee,
                 total: finalTotal,
                 deliveryType: orderType,
@@ -97,7 +140,7 @@ const Checkout = () => {
                 paymentInfo
             };
 
-            const response = await axios.post('http://localhost:3001/api/orders', orderData, { withCredentials: true });
+            const response = await api.post('/orders', orderData);
 
             setConfirmedOrder(response.data);
             setStep('processing');
@@ -110,7 +153,9 @@ const Checkout = () => {
 
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.message || 'Payment processing failed');
+            // Handle both Axios errors and our custom validation errors
+            const errorMessage = err.response?.data?.message || err.message || 'Payment processing failed';
+            setError(errorMessage);
             setLoading(false);
         }
     };
@@ -223,10 +268,10 @@ const Checkout = () => {
                                                         <div className="form-group">
                                                             <input
                                                                 type="text"
-                                                                placeholder="State"
+                                                                placeholder="Province"
                                                                 required
-                                                                value={deliveryInfo.state}
-                                                                onChange={(e) => setDeliveryInfo({ ...deliveryInfo, state: e.target.value })}
+                                                                value={deliveryInfo.province}
+                                                                onChange={(e) => setDeliveryInfo({ ...deliveryInfo, province: e.target.value })}
                                                             />
                                                         </div>
                                                         <div className="form-group">
@@ -339,11 +384,11 @@ const Checkout = () => {
                                                 <label>Card Number</label>
                                                 <input
                                                     type="text"
-                                                    placeholder="0000 0000 0000 0000"
-                                                    maxLength="19"
+                                                    placeholder="0000 0000 0000"
+                                                    maxLength="14"
                                                     required
                                                     value={cardDetails.number}
-                                                    onChange={e => setCardDetails({ ...cardDetails, number: e.target.value })}
+                                                    onChange={handleCardNumberChange}
                                                 />
                                             </div>
                                             <div className="form-row">
@@ -359,14 +404,14 @@ const Checkout = () => {
                                                     />
                                                 </div>
                                                 <div className="form-group">
-                                                    <label>CVC</label>
+                                                    <label>CVV</label>
                                                     <input
                                                         type="text"
                                                         placeholder="123"
                                                         maxLength="3"
                                                         required
-                                                        value={cardDetails.cvc}
-                                                        onChange={e => setCardDetails({ ...cardDetails, cvc: e.target.value })}
+                                                        value={cardDetails.cvv}
+                                                        onChange={e => setCardDetails({ ...cardDetails, cvv: e.target.value })}
                                                     />
                                                 </div>
                                             </div>
