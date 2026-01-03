@@ -3,13 +3,16 @@ import { useCart } from '../context/CartContext';
 import './PizzaCard.css';
 
 const PizzaCard = ({ pizza }) => {
-    const { name, description, image, rating } = pizza;
+    const { name, description, images, average_rating } = pizza;
     const { addToCart } = useCart();
 
     const [size, setSize] = useState('Medium');
     const [crust, setCrust] = useState('Pan');
 
-    // Dynamic Price Mapping from DB
+    // Display image from array
+    const displayImage = (images && images.length > 0) ? images[0] : '/images/placeholder-pizza.png';
+
+   
     const getPriceForSize = (sizeName) => {
         const sizeObj = pizza.sizes?.find(s => s.name === sizeName);
         return pizza.base_price + (sizeObj ? sizeObj.price_modifier : 0);
@@ -36,9 +39,9 @@ const PizzaCard = ({ pizza }) => {
     return (
         <div className="pizza-card">
             <div className="card-image">
-                <img src={image} alt={name} />
+                <img src={displayImage} alt={name} />
                 <div className="rating">
-                    ★ {rating}
+                    ★ {average_rating || pizza.rating || '5.0'}
                 </div>
             </div>
             <div className="card-content">

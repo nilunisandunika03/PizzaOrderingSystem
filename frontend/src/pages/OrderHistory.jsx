@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { Package, Clock, CheckCircle } from 'phosphor-react';
 import { useAuth } from '../context/AuthContext';
 import './OrderHistory.css';
@@ -13,7 +13,7 @@ const OrderHistory = () => {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const response = await axios.get('http://localhost:3001/api/orders/mine', { withCredentials: true });
+                const response = await api.get('/orders/mine');
                 setOrders(response.data);
             } catch (err) {
                 console.error(err);
