@@ -1,6 +1,6 @@
 import { Envelope, Phone, MapPin } from 'phosphor-react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import './Contact.css';
 
 const Contact = () => {
@@ -12,8 +12,8 @@ const Contact = () => {
 
     const fetchCaptcha = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/auth/captcha', { withCredentials: true });
-            setCaptchaSvg(response.data);
+            const response = await api.get('/auth/captcha');
+            setCaptchaSvg(response.data.svg);
         } catch (err) {
             console.error('Failed to load captcha');
         }
@@ -30,7 +30,7 @@ const Contact = () => {
         setLoading(true);
 
         try {
-            await axios.post('http://localhost:3001/api/auth/verify-captcha', { captcha }, { withCredentials: true });
+            await api.post('/auth/verify-captcha', { captcha });
             setSuccess('Message sent successfully! We will get back to you soon.');
             setCaptcha('');
         } catch (err) {
