@@ -7,10 +7,18 @@ export const useCart = () => useContext(CartContext);
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState(() => {
         const savedCart = localStorage.getItem('cartItems');
-        return savedCart ? JSON.parse(savedCart) : [];
+        if (savedCart) {
+            const parsed = JSON.parse(savedCart);
+        
+            const hasStaleData = parsed.some(item => typeof item.id === 'number' || !isNaN(item.id));
+            if (hasStaleData) {
+                localStorage.removeItem('cartItems');
+                return [];
+            }
+            return parsed;
+        }
+        return [];
     });
-
-    const [orderType, setOrderType] = useState('delivery'); // delivery, takeaway
 
     useEffect(() => {
         localStorage.setItem('cartItems', JSON.stringify(cartItems));
@@ -59,7 +67,6 @@ export const CartProvider = ({ children }) => {
 
     const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
     const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
-    const deliveryFee = orderType === 'delivery' ? 300 : 0;
 
     return (
         <CartContext.Provider value={{
@@ -69,10 +76,7 @@ export const CartProvider = ({ children }) => {
             updateQuantity,
             clearCart,
             cartTotal,
-            cartCount,
-            orderType,
-            setOrderType,
-            deliveryFee
+            cartCount
         }}>
             {children}
         </CartContext.Provider>
