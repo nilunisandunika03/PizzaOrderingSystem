@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import './Auth.css';
 
 const EmailVerify = () => {
@@ -20,7 +20,7 @@ const EmailVerify = () => {
             }
 
             try {
-                await axios.post('http://localhost:3001/api/auth/verify-email', { token });
+                await api.post('/auth/verify-email', { token });
                 setStatus('success');
                 setMessage('Email verified successfully!');
                 // Optional: Redirect after a few seconds
