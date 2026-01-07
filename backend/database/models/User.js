@@ -42,8 +42,11 @@ const userSchema = new mongoose.Schema({
         default: null
     },
     address: {
-        type: String,
-        default: null
+        no: { type: String, default: null },
+        street: { type: String, default: null },
+        city: { type: String, default: null },
+        state: { type: String, default: null },
+        zip_code: { type: String, default: null }
     },
     failed_login_attempts: {
         type: Number,
@@ -55,9 +58,16 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['customer', 'admin', 'deliverer'],
+        enum: ['customer', 'admin'],
         default: 'customer'
-    }
+    },
+    savedCards: [{
+        last4: String,
+        brand: String, // e.g., 'Visa', 'MasterCard'
+        expiry: String,
+        token: String, // In a real app, this is a PCIDSS token from Stripe/etc.
+        cardHolder: String
+    }]
 }, {
     timestamps: true
 });
