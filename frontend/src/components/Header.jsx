@@ -39,11 +39,12 @@ const Header = () => {
                         <span className="cart-count">{cartCount}</span>
                     </Link>
 
+                    <Link to="/orders" className="orders-btn" title="My Orders">
+                        <Clock size={24} weight="bold" />
+                    </Link>
+
                     {user ? (
                         <div className="user-actions">
-                            <Link to="/orders" className="orders-btn" title="My Orders">
-                                <Clock size={24} weight="bold" />
-                            </Link>
                             <Link to="/profile" className="profile-btn" aria-label="Profile">
                                 <User size={24} weight="bold" />
                             </Link>

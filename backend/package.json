@@ -1,11 +1,12 @@
 {
-    "name": "appppp-server",
+    "name": "pizza-ordering-system-server",
     "version": "1.0.0",
-    "description": "Secure backend for appppp",
+    "description": "Secure backend for Pizza Ordering System",
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
-        "dev": "nodemon index.js"
+        "dev": "nodemon index.js",
+        "seed": "node seed.js"
     },
     "dependencies": {
         "argon2": "^0.44.0",
@@ -24,6 +25,7 @@
         "mongoose": "^9.0.2",
         "nodemailer": "^6.9.13",
         "otp-generator": "^4.0.1",
+        "stripe": "^14.25.0",
         "svg-captcha": "^1.4.0",
         "zxcvbn": "^4.4.2"
     },

@@ -12,7 +12,7 @@ const PizzaCard = ({ pizza }) => {
     // Display image from array
     const displayImage = (images && images.length > 0) ? images[0] : '/images/placeholder-pizza.png';
 
-   
+
     const getPriceForSize = (sizeName) => {
         const sizeObj = pizza.sizes?.find(s => s.name === sizeName);
         return pizza.base_price + (sizeObj ? sizeObj.price_modifier : 0);
@@ -30,6 +30,7 @@ const PizzaCard = ({ pizza }) => {
     const handleAddToCart = () => {
         addToCart({
             ...pizza,
+            image: displayImage,
             price: totalPrice,
             selectedSize: size,
             selectedCrust: crust

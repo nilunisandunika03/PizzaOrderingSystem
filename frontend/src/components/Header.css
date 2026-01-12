@@ -146,12 +146,12 @@
 @media (max-width: 768px) {
     .nav-menu {
         display: none;
-        /* Mobile menu to be implemented later if needed */
     }
 }
 
-/* Profile Button - same as cart button */
-.profile-btn {
+/* Profile, Cart, and Orders Button shared styles */
+.profile-btn,
+.orders-btn {
     background: var(--bg-body);
     width: 44px;
     height: 44px;

@@ -9,10 +9,10 @@ const { isAuthenticated } = require('../middleware/auth.middleware');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 
-// --- Helper Functions ---
+
 const generateOTP = () => otpGenerator.generate(6, { digits: true, lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
 
-// --- Rate Limiters ---
+
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 20,
@@ -80,22 +80,30 @@ router.post('/register', authLimiter, [
         }
 
         const verification_token = crypto.randomBytes(32).toString('hex');
-        const verification_token_expires = Date.now() + 3600000; // 1 hour expiry
+        const verification_token_expires = Date.now() + 3600000;
 
-        await User.create({
+        const userData = {
             email,
-            password_hash: password, // Hashed automatically in pre-save hook
+            password_hash: password,
             full_name: fullName,
             verification_token,
             verification_token_expires,
-            address,
-            role: 'customer' // Explicitly set role
-        });
+            role: 'customer'
+        };
 
-        // Clear captcha only after user creation is successful
+        if (address) {
+            userData.address = address;
+        }
+
+        await User.create(userData);
+
+
         req.session.captcha = null;
 
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
+        console.log('------------------------------------------------');
+        console.log('DEV MSG - Verification Link:', verifyLink);
+        console.log('------------------------------------------------');
         await sendEmail(email, 'Verify your email', `
             <h3>Welcome to Appppp!</h3>
             <p>Please click the link below to verify your email address (expires in 1 hour):</p>
@@ -109,7 +117,7 @@ router.post('/register', authLimiter, [
     }
 });
 
-// 3. Verify Email
+
 router.post('/verify-email', authLimiter, async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ message: 'Missing token' });
@@ -133,7 +141,7 @@ router.post('/verify-email', authLimiter, async (req, res) => {
     }
 });
 
-// 4. Login Step 1: Validate Credentials & Send OTP
+
 router.post('/login', loginLimiter, [
     body('email').isEmail(),
     body('password').notEmpty(),
@@ -149,10 +157,6 @@ router.post('/login', loginLimiter, [
         const user = await User.findOne({ email });
         if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-        // ... existing login logic ...
-        // I will keep the rest of the block as it was in my mind, 
-        // but I should probably just replace the start.
-        // Actually I'll replace the whole block to be sure.
 
         if (user.lock_until && user.lock_until > Date.now()) {
             return res.status(403).json({
@@ -184,6 +188,9 @@ router.post('/login', loginLimiter, [
         req.session.captcha = null;
 
         await sendEmail(user.email, 'Your Login OTP', `<p>Your verification code is: <strong>${otp}</strong></p>`);
+        console.log('------------------------------------------------');
+        console.log('DEV MSG - Login OTP:', otp);
+        console.log('------------------------------------------------');
         req.session.preAuthUserId = user._id;
 
         res.status(200).json({ message: 'OTP sent to email', requireMfa: true });
@@ -222,7 +229,10 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
                     id: user._id,
                     fullName: user.full_name,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    address: user.address,
+                    savedCards: user.savedCards
                 }
             });
         });
@@ -233,7 +243,7 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
     }
 });
 
-// 6. Logout
+
 router.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) return res.status(500).json({ message: 'Logout failed' });
@@ -242,17 +252,17 @@ router.post('/logout', (req, res) => {
     });
 });
 
-// 7. Check Auth Status
+
 router.get('/me', isAuthenticated, async (req, res) => {
     try {
-        const user = await User.findById(req.session.userId).select('full_name email is_verified address role');
+        const user = await User.findById(req.session.userId).select('full_name email is_verified address role savedCards');
         res.json({ user });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user' });
     }
 });
 
-// 8. Update Profile
+
 router.put('/profile', isAuthenticated, [
     body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
 ], async (req, res) => {

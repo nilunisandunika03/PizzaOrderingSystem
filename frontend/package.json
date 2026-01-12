@@ -1,5 +1,5 @@
 {
-  "name": "appppp",
+  "name": "pizza-ordering-system-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.6.0",
     "axios": "^1.13.2",
+    "nodemailer": "^7.0.12",
     "phosphor-react": "^1.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
