@@ -9,8 +9,10 @@ const path = require('path');
 
 require('dotenv').config();
 
+
 // Connect to MongoDB
-connectDB();
+// Removed top-level call to prevent race condition
+// connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +21,10 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet()); // Security headers
 app.use(mongoSanitize()); // Prevention against NoSQL injection
 app.use(cookieParser());
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
+    next();
+});
 app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
@@ -35,10 +41,16 @@ if (!SESSION_SECRET) {
     process.exit(1);
 }
 
+const MongoStore = require('connect-mongo').default;
+
 app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true, // Ensured session is created early for CAPTCHA
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        collectionName: 'sessions'
+    }),
     name: 'sessionId', // Custom cookie name
     cookie: {
         secure: process.env.NODE_ENV === 'production',
@@ -92,6 +104,17 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+    try {
+        await connectDB();
+
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to connect to the database. Server not started.', error);
+        process.exit(1);
+    }
+};
+
+startServer();

@@ -9,10 +9,10 @@ const { isAuthenticated } = require('../middleware/auth.middleware');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 
-
+// --- Helper Functions ---
 const generateOTP = () => otpGenerator.generate(6, { digits: true, lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
 
-
+// --- Rate Limiters ---
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 20,
@@ -101,9 +101,7 @@ router.post('/register', authLimiter, [
         req.session.captcha = null;
 
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
-        console.log('------------------------------------------------');
-        console.log('DEV MSG - Verification Link:', verifyLink);
-        console.log('------------------------------------------------');
+        // Logs removed for security
         await sendEmail(email, 'Verify your email', `
             <h3>Welcome to Appppp!</h3>
             <p>Please click the link below to verify your email address (expires in 1 hour):</p>
@@ -150,12 +148,18 @@ router.post('/login', loginLimiter, [
     const { email, password, captcha } = req.body;
 
     try {
+        console.log(`[Login Attempt] Email: ${email}, Captcha Provided: ${captcha}, Session Captcha: ${req.session.captcha}`);
+
         if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
+            console.log('[Login Fail] Invalid CAPTCHA');
             return res.status(400).json({ message: 'Invalid CAPTCHA' });
         }
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+        if (!user) {
+            console.log('[Login Fail] User not found');
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
 
 
         if (user.lock_until && user.lock_until > Date.now()) {
@@ -164,11 +168,16 @@ router.post('/login', loginLimiter, [
             });
         }
 
-        if (!user.is_verified) return res.status(401).json({ message: 'Please verify your email first' });
+
+        if (!user.is_verified) {
+            console.log('[Login Fail] User not verified');
+            return res.status(401).json({ message: 'Please verify your email first' });
+        }
 
         const isMatch = await user.comparePassword(password);
 
         if (!isMatch) {
+            console.log('[Login Fail] Password mismatch');
             user.failed_login_attempts += 1;
             if (user.failed_login_attempts >= 5) {
                 user.lock_until = Date.now() + 15 * 60 * 1000;
@@ -188,9 +197,7 @@ router.post('/login', loginLimiter, [
         req.session.captcha = null;
 
         await sendEmail(user.email, 'Your Login OTP', `<p>Your verification code is: <strong>${otp}</strong></p>`);
-        console.log('------------------------------------------------');
-        console.log('DEV MSG - Login OTP:', otp);
-        console.log('------------------------------------------------');
+        // Logs removed for security
         req.session.preAuthUserId = user._id;
 
         res.status(200).json({ message: 'OTP sent to email', requireMfa: true });
