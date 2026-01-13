@@ -12,6 +12,9 @@ export const AuthProvider = ({ children }) => {
     // Check if user is logged in (session exists) on mount
     useEffect(() => {
         const checkAuth = async () => {
+            // Development mode: use mock user to bypass login
+            // Development mode bypass removed
+
             try {
                 const response = await api.get('/auth/me');
                 setUser(response.data.user);
