@@ -154,4 +154,23 @@ router.get('/mine', isAuthenticated, async (req, res) => {
     }
 });
 
+// Get Single Order Details
+router.get('/:id', isAuthenticated, async (req, res) => {
+    try {
+        const order = await Order.findOne({
+            _id: req.params.id,
+            customer: req.session.userId
+        });
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        res.json(order);
+    } catch (error) {
+        console.error('Get Order Details Error:', error);
+        res.status(500).json({ message: 'Failed to fetch order details' });
+    }
+});
+
 module.exports = router;
