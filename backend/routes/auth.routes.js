@@ -150,27 +150,32 @@ router.post('/login', loginLimiter, [
     try {
         console.log(`[Login Attempt] Email: ${email}, Captcha Provided: ${captcha}, Session Captcha: ${req.session.captcha}`);
 
+        // IF captcha_is_wrong: SHOW "Invalid captcha. Please try again." REFRESH_CAPTCHA() STOP
         if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
             console.log('[Login Fail] Invalid CAPTCHA');
-            return res.status(400).json({ message: 'Invalid CAPTCHA' });
+            req.session.captcha = null; // Clear captcha to force refresh
+            return res.status(400).json({ message: 'Invalid captcha. Please try again.' });
         }
 
         const user = await User.findOne({ email });
+        
+        // IF email_or_password_is_wrong: SHOW "Invalid email or password." REFRESH_CAPTCHA() STOP
         if (!user) {
             console.log('[Login Fail] User not found');
-            return res.status(401).json({ message: 'Invalid credentials' });
+            req.session.captcha = null; // Clear captcha to force refresh
+            return res.status(401).json({ message: 'Invalid email or password.' });
         }
 
-
         if (user.lock_until && user.lock_until > Date.now()) {
+            req.session.captcha = null; // Clear captcha to force refresh
             return res.status(403).json({
                 message: `Account locked due to multiple failed attempts. Try again later.`
             });
         }
 
-
         if (!user.is_verified) {
             console.log('[Login Fail] User not verified');
+            req.session.captcha = null; // Clear captcha to force refresh
             return res.status(401).json({ message: 'Please verify your email first' });
         }
 
@@ -183,9 +188,11 @@ router.post('/login', loginLimiter, [
                 user.lock_until = Date.now() + 15 * 60 * 1000;
             }
             await user.save();
-            return res.status(401).json({ message: 'Invalid credentials' });
+            req.session.captcha = null; // Clear captcha to force refresh
+            return res.status(401).json({ message: 'Invalid email or password.' });
         }
 
+        // ELSE: LOG_USER_IN()
         user.failed_login_attempts = 0;
         user.lock_until = null;
 
