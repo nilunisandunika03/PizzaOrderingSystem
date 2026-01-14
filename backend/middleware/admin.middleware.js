@@ -1,5 +1,4 @@
 const isAdmin = async (req, res, next) => {
-    // First check if user is authenticated
     if (!req.session || !req.session.userId) {
         return res.status(401).json({ message: 'Unauthorized. Please login.' });
     }
