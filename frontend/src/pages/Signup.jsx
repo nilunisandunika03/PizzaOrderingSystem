@@ -57,7 +57,16 @@ const Signup = () => {
             setPassword('');
             setCaptcha('');
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to sign up');
+            const errorData = err.response?.data;
+            const errorMessage = errorData?.message || 'Failed to sign up';
+            
+            // Check if email already registered
+            if (errorData?.suggestLogin) {
+                // Show error with login link
+                setError(errorMessage);
+            } else {
+                setError(errorMessage);
+            }
             fetchCaptcha(); // Refresh captcha on failure
         }
     };
@@ -81,7 +90,18 @@ const Signup = () => {
                 <h2>Create Account</h2>
                 <p>Join us for exclusive deals</p>
 
-                {error && <div className="alert error">{error}</div>}
+                {error && (
+                    <div className="alert error">
+                        {error}
+                        {error.includes('already registered') && (
+                            <div style={{ marginTop: '10px' }}>
+                                <Link to="/login" className="btn btn-secondary" style={{ fontSize: '14px', padding: '8px 16px' }}>
+                                    Go to Login
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {success && <div className="alert success">{success}</div>}
 
                 {!success && (

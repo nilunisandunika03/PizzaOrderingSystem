@@ -74,13 +74,19 @@ router.post('/register', authLimiter, [
             return res.status(400).json({ message: 'Invalid CAPTCHA' });
         }
 
+        // Check if email exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: 'Email already registered' });
+            // If YES: Show "Email already registered. Would you like to [Login]?"
+            return res.status(400).json({ 
+                message: 'Email already registered. Would you like to Login?',
+                suggestLogin: true 
+            });
         }
 
+        // If NO: Create user record with verification_token and created_at timestamp
         const verification_token = crypto.randomBytes(32).toString('hex');
-        const verification_token_expires = Date.now() + 3600000;
+        const verification_token_expires = Date.now() + 6 * 60 * 1000; // 6 minutes
 
         const userData = {
             email,
@@ -103,8 +109,8 @@ router.post('/register', authLimiter, [
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
         // Logs removed for security
         await sendEmail(email, 'Verify your email', `
-            <h3>Welcome to Appppp!</h3>
-            <p>Please click the link below to verify your email address (expires in 1 hour):</p>
+            <h3>Welcome to PizzaSlice!</h3>
+            <p>Please click the link below to verify your email address (expires in 6 minutes):</p>
             <a href="${verifyLink}">Verify Email</a>
         `);
 
@@ -121,13 +127,24 @@ router.post('/verify-email', authLimiter, async (req, res) => {
     if (!token) return res.status(400).json({ message: 'Missing token' });
 
     try {
-        const user = await User.findOne({
-            verification_token: token,
-            verification_token_expires: { $gt: Date.now() }
-        });
+        // When the user clicks the link, check the timestamp
+        const user = await User.findOne({ verification_token: token });
 
-        if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid verification token' });
+        }
 
+        // Check if link is expired (6 minutes)
+        if (user.verification_token_expires < Date.now()) {
+            // If Expired: Show "Link expired. [Resend Verification Email]."
+            return res.status(400).json({ 
+                message: 'Link expired. Please resend verification email.',
+                expired: true,
+                email: user.email
+            });
+        }
+
+        // If Valid: Change status to is_verified: true
         user.is_verified = true;
         user.verification_token = null;
         user.verification_token_expires = null;
@@ -136,6 +153,48 @@ router.post('/verify-email', authLimiter, async (req, res) => {
         res.status(200).json({ message: 'Email verified successfully. You can now login.' });
     } catch (error) {
         res.status(500).json({ message: 'Server error during verification' });
+    }
+});
+
+// Resend Verification Email
+router.post('/resend-verification', authLimiter, [
+    body('email').isEmail().withMessage('Invalid email format')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.is_verified) {
+            return res.status(400).json({ message: 'Email is already verified. Please login.' });
+        }
+
+        // Generate new verification token with 6-minute expiry
+        const verification_token = crypto.randomBytes(32).toString('hex');
+        user.verification_token = verification_token;
+        user.verification_token_expires = Date.now() + 6 * 60 * 1000; // 6 minutes
+        await user.save();
+
+        const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
+        await sendEmail(email, 'Verify your email', `
+            <h3>Welcome to PizzaSlice!</h3>
+            <p>Please click the link below to verify your email address (expires in 6 minutes):</p>
+            <a href="${verifyLink}">Verify Email</a>
+        `);
+
+        res.status(200).json({ message: 'Verification email resent. Please check your inbox.' });
+    } catch (error) {
+        console.error('Resend Verification Error:', error);
+        res.status(500).json({ message: 'Server error while resending verification email' });
     }
 });
 
