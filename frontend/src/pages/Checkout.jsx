@@ -56,7 +56,31 @@ const Checkout = () => {
             alert('Please select an order type (Delivery or Takeaway) to proceed.');
             return;
         }
+        
+        // Validate contact numbers if delivery is selected
+        if (orderType === 'delivery') {
+            const contact1Digits = deliveryInfo.contact1.replace(/\D/g, '');
+            const contact2Digits = deliveryInfo.contact2.replace(/\D/g, '');
+            
+            if (contact1Digits.length !== 10) {
+                alert('Primary contact must be exactly 10 digits.');
+                return;
+            }
+            if (contact2Digits.length !== 10) {
+                alert('Secondary contact must be exactly 10 digits.');
+                return;
+            }
+        }
+        
         setStep('payment');
+    };
+
+    // Handle contact number input - only allow digits and limit to 10
+    const handleContactChange = (field, value) => {
+        const digitsOnly = value.replace(/\D/g, ''); // Remove non-digits
+        if (digitsOnly.length <= 10) {
+            setDeliveryInfo({ ...deliveryInfo, [field]: digitsOnly });
+        }
     };
 
     // Format card number with spaces (XXXX XXXX XXXX)
@@ -295,8 +319,14 @@ const Checkout = () => {
                                                         placeholder="07X XXX XXXX"
                                                         required
                                                         value={deliveryInfo.contact1}
-                                                        onChange={(e) => setDeliveryInfo({ ...deliveryInfo, contact1: e.target.value })}
+                                                        onChange={(e) => handleContactChange('contact1', e.target.value)}
+                                                        maxLength="10"
+                                                        pattern="\d{10}"
+                                                        title="Please enter exactly 10 digits"
                                                     />
+                                                    {deliveryInfo.contact1 && deliveryInfo.contact1.length !== 10 && (
+                                                        <small style={{ color: '#e74c3c' }}>Must be 10 digits ({deliveryInfo.contact1.length}/10)</small>
+                                                    )}
                                                 </div>
                                                 <div className="form-group">
                                                     <label><Phone size={16} /> Secondary Contact</label>
@@ -305,8 +335,14 @@ const Checkout = () => {
                                                         placeholder="07X XXX XXXX"
                                                         required
                                                         value={deliveryInfo.contact2}
-                                                        onChange={(e) => setDeliveryInfo({ ...deliveryInfo, contact2: e.target.value })}
+                                                        onChange={(e) => handleContactChange('contact2', e.target.value)}
+                                                        maxLength="10"
+                                                        pattern="\d{10}"
+                                                        title="Please enter exactly 10 digits"
                                                     />
+                                                    {deliveryInfo.contact2 && deliveryInfo.contact2.length !== 10 && (
+                                                        <small style={{ color: '#e74c3c' }}>Must be 10 digits ({deliveryInfo.contact2.length}/10)</small>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
