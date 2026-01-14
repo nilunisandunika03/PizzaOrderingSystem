@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const helmet = require('helmet');
@@ -7,7 +8,6 @@ const mongoSanitize = require('express-mongo-sanitize');
 const { connectDB } = require('./database/database');
 const path = require('path');
 
-require('dotenv').config();
 
 
 // Connect to MongoDB
