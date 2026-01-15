@@ -133,7 +133,7 @@ const Profile = () => {
                                 <Link to="/orders" className="btn btn-secondary">
                                     <Clock size={20} /> View Order History
                                 </Link>
-                                <button onClick={logout} className="btn btn-link">
+                                <button onClick={logout} className="btn btn-logout">
                                     Logout
                                 </button>
                             </div>
