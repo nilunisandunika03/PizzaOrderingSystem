@@ -8,6 +8,7 @@ const { sendEmail } = require('../utils/email');
 const { isAuthenticated } = require('../middleware/auth.middleware');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
+const { checkIPRegistrationLimit, getIPStats } = require('../utils/ipTracker');
 
 // --- Helper Functions ---
 const generateOTP = () => otpGenerator.generate(6, { digits: true, lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
@@ -73,6 +74,19 @@ router.post('/register', authLimiter, [
     const { email, password, fullName, captcha, address } = req.body;
 
     try {
+        // --- IP-Based Registration Limit Check ---
+        const clientIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        
+        if (!checkIPRegistrationLimit(clientIP)) {
+            const stats = getIPStats(clientIP);
+            console.log(`[REGISTRATION BLOCKED] IP: ${clientIP} exceeded daily limit`);
+            return res.status(429).json({ 
+                message: `Too many accounts registered from this network. Please try again in ${stats.resetIn} minutes.`,
+                limitExceeded: true,
+                resetIn: stats.resetIn
+            });
+        }
+
         // Validate CAPTCHA first
         if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
             req.session.captcha = null; // Clear captcha
@@ -115,6 +129,7 @@ router.post('/register', authLimiter, [
 
         const newUser = await User.create(userData);
         console.log(`[REGISTRATION] User created successfully: ${newUser.email}`);
+        console.log(`[IP TRACKING] Registration from IP: ${clientIP}`);
 
         req.session.captcha = null;
 
