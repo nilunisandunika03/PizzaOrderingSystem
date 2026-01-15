@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    mfa_secret_expires: {
+        type: Date,
+        default: null
+    },
     mfa_enabled: {
         type: Boolean,
         default: false

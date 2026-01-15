@@ -318,6 +318,7 @@ router.post('/login', loginLimiter, [
 
         const otp = generateOTP();
         user.mfa_secret = otp;
+        user.mfa_secret_expires = Date.now() + 10 * 60 * 1000; // OTP expires in 10 minutes
         await user.save();
 
         // Clear captcha only on successful credentials and OTP generation
@@ -345,6 +346,17 @@ router.post('/verify-otp', loginLimiter, regenerateSession, async (req, res) => 
         const user = await User.findById(userId);
         if (!user) return res.status(401).json({ message: 'User not found' });
 
+        // Check if OTP has expired
+        if (!user.mfa_secret_expires || user.mfa_secret_expires < Date.now()) {
+            user.mfa_secret = null;
+            user.mfa_secret_expires = null;
+            await user.save();
+            return res.status(400).json({ 
+                message: 'OTP expired. Please login again.',
+                expired: true
+            });
+        }
+
         if (user.mfa_secret !== otp) {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
@@ -354,6 +366,7 @@ router.post('/verify-otp', loginLimiter, regenerateSession, async (req, res) => 
         req.session.preAuthUserId = null; // Clear pre-auth ID
         
         user.mfa_secret = null;
+        user.mfa_secret_expires = null; // Clear expiry timestamp
         user.last_login = new Date();
         await user.save();
 
