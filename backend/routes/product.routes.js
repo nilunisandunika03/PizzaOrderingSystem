@@ -6,23 +6,24 @@ const Category = require('../database/models/Category');
 const { requireAdmin } = require('../middleware/admin.middleware');
 const logger = require('../utils/logger');
 const rateLimit = require('express-rate-limit');
+const { apiRateLimiter } = require('../middleware/security.middleware');
 
-// Rate limiter for public product endpoints
-const productLimiter = rateLimit({
+// Rate limiter for search endpoint (stricter to prevent scraping)
+const searchLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    message: { message: 'Too many requests, please try again later' }
+    max: 30, // 30 searches per 15 minutes
+    message: { message: 'Too many search requests. Please try again later.' }
 });
 
 // ==================== PUBLIC ROUTES ====================
 
 // Get all products with filtering and pagination
-router.get('/', productLimiter, [
+router.get('/', apiRateLimiter, [
     query('category').optional().isMongoId(),
     query('is_featured').optional().isBoolean(),
     query('is_vegetarian').optional().isBoolean(),
     query('is_vegan').optional().isBoolean(),
-    query('search').optional().isString(),
+    query('search').optional().isString().trim().escape(), // XSS protection
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 50 })
 ], async (req, res) => {
@@ -42,9 +43,11 @@ router.get('/', productLimiter, [
         if (is_vegetarian !== undefined) query.is_vegetarian = is_vegetarian === 'true';
         if (is_vegan !== undefined) query.is_vegan = is_vegan === 'true';
 
-        // Text search
+        // Text search with input sanitization (NoSQL injection prevention)
         if (search) {
-            query.$text = { $search: search };
+            // Escape special regex characters to prevent ReDoS attacks
+            const sanitizedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            query.$text = { $search: sanitizedSearch };
         }
 
         // Pagination
@@ -54,7 +57,8 @@ router.get('/', productLimiter, [
             .populate('category', 'name')
             .skip(skip)
             .limit(parseInt(limit))
-            .sort({ is_featured: -1, createdAt: -1 });
+            .sort({ is_featured: -1, createdAt: -1 })
+            .select('-__v'); // Hide internal fields
 
         const total = await Product.countDocuments(query);
 
@@ -74,9 +78,11 @@ router.get('/', productLimiter, [
 });
 
 // Get single product
-router.get('/:id', productLimiter, async (req, res) => {
+router.get('/:id', apiRateLimiter, async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id).populate('category');
+        const product = await Product.findById(req.params.id)
+            .populate('category')
+            .select('-__v');
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -90,7 +96,7 @@ router.get('/:id', productLimiter, async (req, res) => {
 });
 
 // Get products by category
-router.get('/category/:categoryId', productLimiter, async (req, res) => {
+router.get('/category/:categoryId', apiRateLimiter, async (req, res) => {
     try {
         const products = await Product.find({
             category: req.params.categoryId,
@@ -105,7 +111,7 @@ router.get('/category/:categoryId', productLimiter, async (req, res) => {
 });
 
 // Get featured products
-router.get('/featured/list', productLimiter, async (req, res) => {
+router.get('/featured/list', apiRateLimiter, async (req, res) => {
     try {
         const products = await Product.find({
             is_featured: true,

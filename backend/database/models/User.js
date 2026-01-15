@@ -88,6 +88,43 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     return await argon2.verify(this.password_hash, candidatePassword);
 };
 
+// --- New Account Restriction Methods ---
+
+/**
+ * Get account age in milliseconds
+ */
+userSchema.virtual('accountAge').get(function () {
+    return Date.now() - this.createdAt.getTime();
+});
+
+/**
+ * Check if account can place orders (must wait 24 hours)
+ * @returns {boolean} - true if allowed, false if too new
+ */
+userSchema.methods.canPlaceOrder = function () {
+    const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    return this.accountAge >= MIN_ACCOUNT_AGE_MS;
+};
+
+/**
+ * Check if account can leave reviews (must wait 24 hours)
+ * @returns {boolean} - true if allowed, false if too new
+ */
+userSchema.methods.canLeaveReview = function () {
+    const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    return this.accountAge >= MIN_ACCOUNT_AGE_MS;
+};
+
+/**
+ * Get time remaining until account can perform restricted actions
+ * @returns {number} - Time remaining in minutes
+ */
+userSchema.methods.getTimeUntilUnrestricted = function () {
+    const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const timeRemaining = MIN_ACCOUNT_AGE_MS - this.accountAge;
+    return Math.max(0, Math.ceil(timeRemaining / 1000 / 60)); // Convert to minutes
+};
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
