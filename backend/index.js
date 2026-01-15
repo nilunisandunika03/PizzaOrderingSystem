@@ -7,6 +7,14 @@ const cookieParser = require('cookie-parser');
 const mongoSanitize = require('express-mongo-sanitize');
 const { connectDB } = require('./database/database');
 const path = require('path');
+const { 
+    deviceFingerprint, 
+    sessionActivityTimeout, 
+    cspHeaders, 
+    hstsHeader, 
+    securityHeaders,
+    ipThrottling 
+} = require('./middleware/security.middleware');
 
 
 
@@ -21,6 +29,13 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet()); // Security headers
 app.use(mongoSanitize()); // Prevention against NoSQL injection
 app.use(cookieParser());
+
+// Enhanced Security Middleware
+app.use(cspHeaders); // Content Security Policy
+app.use(hstsHeader); // HSTS for HTTPS enforcement
+app.use(securityHeaders); // Additional security headers
+app.use(ipThrottling); // IP-based throttling for DDoS protection
+
 app.use((req, res, next) => {
     console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
     next();
@@ -60,6 +75,10 @@ app.use(session({
         path: '/'
     }
 }));
+
+// Session security middleware
+app.use(deviceFingerprint); // Device fingerprinting for session binding
+app.use(sessionActivityTimeout); // Auto-logout on inactivity
 
 // Placeholder route
 app.get('/', (req, res) => {

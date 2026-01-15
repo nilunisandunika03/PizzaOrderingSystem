@@ -4,6 +4,9 @@ const Order = require('../database/models/Order');
 const User = require('../database/models/User');
 const { isAuthenticated } = require('../middleware/auth.middleware');
 const { sendOrderConfirmation } = require('../utils/email');
+const { validateOrder } = require('../utils/priceValidation');
+const { checkPromoCodeAbuse } = require('../utils/fraudDetection');
+const logger = require('../utils/logger');
 
 // Create a new order
 router.post('/', isAuthenticated, async (req, res) => {
@@ -16,10 +19,12 @@ router.post('/', isAuthenticated, async (req, res) => {
             deliveryType,
             deliveryInfo, // { address, contact1, contact2 }
             paymentInfo, // { last4, brand, expiry, saveCard }
-            paymentMethod = 'card'
+            paymentMethod = 'card',
+            promoCode
         } = req.body;
 
         const userId = req.session.userId;
+        const ip = req.ip || req.connection.remoteAddress;
 
         // 0. Validate product IDs (prevent BSON errors from stale cart)
         const mongoose = require('mongoose');
@@ -29,6 +34,42 @@ router.post('/', isAuthenticated, async (req, res) => {
                 return res.status(400).json({
                     message: `Invalid product ID: ${pid}. Your cart might contain old data. Please clear your cart and try again.`,
                     staleCart: true
+                });
+            }
+        }
+
+        // 0.1. SERVER-SIDE PRICE VALIDATION (Critical Security Control)
+        const priceValidation = await validateOrder({
+            items,
+            subtotal,
+            deliveryFee,
+            total,
+            deliveryType,
+            deliveryInfo,
+            paymentInfo
+        });
+
+        if (!priceValidation.isValid) {
+            logger.security('Order validation failed - possible tampering', {
+                userId,
+                ip,
+                errors: priceValidation.errors
+            });
+            return res.status(400).json({
+                message: 'Order validation failed. Prices may have changed or there was an error.',
+                errors: priceValidation.errors,
+                validationFailed: true
+            });
+        }
+
+        // 0.2. Promo code abuse detection
+        if (promoCode) {
+            const promoCheck = checkPromoCodeAbuse(userId, ip, promoCode);
+            if (promoCheck.abused) {
+                logger.security('Promo code abuse detected', { userId, ip, promoCode });
+                return res.status(403).json({
+                    message: promoCheck.reason,
+                    promoAbuse: true
                 });
             }
         }
