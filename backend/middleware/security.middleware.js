@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const regenerateSession = (req, res, next) => {
     if (req.session) {
         const userData = req.session.userId;
+        const preAuthData = req.session.preAuthUserId; // Preserve pre-auth data for OTP verification
         req.session.regenerate((err) => {
             if (err) {
                 console.error('[SECURITY] Session regeneration failed:', err);
@@ -19,6 +20,9 @@ const regenerateSession = (req, res, next) => {
             }
             if (userData) {
                 req.session.userId = userData;
+            }
+            if (preAuthData) {
+                req.session.preAuthUserId = preAuthData; // Restore pre-auth data
             }
             next();
         });
