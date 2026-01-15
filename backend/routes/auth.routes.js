@@ -70,26 +70,35 @@ router.post('/register', authLimiter, [
     const { email, password, fullName, captcha, address } = req.body;
 
     try {
+        // Validate CAPTCHA first
         if (!req.session.captcha || req.session.captcha.toLowerCase() !== captcha.toLowerCase()) {
+            req.session.captcha = null; // Clear captcha
             return res.status(400).json({ message: 'Invalid CAPTCHA' });
         }
 
-        // Check if email exists
-        const existingUser = await User.findOne({ email });
+        // System checks Database: SELECT * FROM users WHERE email = 'input_email'
+        console.log(`[REGISTRATION] Checking if email exists: ${email.toLowerCase()}`);
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        
+        // IF Email Exists: Stop! Do not send a verification email.
         if (existingUser) {
-            // If YES: Show "Email already registered. Would you like to [Login]?"
+            console.log(`[REGISTRATION] Email already exists in database: ${email}`);
+            req.session.captcha = null; // Clear captcha
+            // Popup Message: "This email is already registered. Please login instead."
             return res.status(400).json({ 
-                message: 'Email already registered. Would you like to Login?',
+                message: 'This email is already registered. Please login instead.',
                 suggestLogin: true 
             });
         }
 
-        // If NO: Create user record with verification_token and created_at timestamp
+        console.log(`[REGISTRATION] Email is new, creating user: ${email}`);
+        
+        // IF Email DOES NOT Exist: Create the temporary user record
         const verification_token = crypto.randomBytes(32).toString('hex');
         const verification_token_expires = Date.now() + 6 * 60 * 1000; // 6 minutes
 
         const userData = {
-            email,
+            email: email.toLowerCase(), // Ensure lowercase
             password_hash: password,
             full_name: fullName,
             verification_token,
@@ -101,22 +110,34 @@ router.post('/register', authLimiter, [
             userData.address = address;
         }
 
-        await User.create(userData);
-
+        const newUser = await User.create(userData);
+        console.log(`[REGISTRATION] User created successfully: ${newUser.email}`);
 
         req.session.captcha = null;
 
+        // Send the Gmail verification code (using your new SMTP settings)
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
-        // Logs removed for security
         await sendEmail(email, 'Verify your email', `
             <h3>Welcome to PizzaSlice!</h3>
             <p>Please click the link below to verify your email address (expires in 6 minutes):</p>
             <a href="${verifyLink}">Verify Email</a>
         `);
 
-        res.status(201).json({ message: 'Registration successful. Please check your email for verification.' });
+        console.log(`[REGISTRATION] Verification email sent to: ${email}`);
+        
+        // Popup Message: "Registration successful! Please check your email for the 6-digit verification code."
+        res.status(201).json({ message: 'Registration successful! Please check your email for verification.' });
     } catch (error) {
         console.error('Registration Error:', error);
+        
+        // Check for duplicate key error (MongoDB unique constraint)
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                message: 'This email is already registered. Please login instead.',
+                suggestLogin: true 
+            });
+        }
+        
         res.status(500).json({ message: 'Server error during registration' });
     }
 });
