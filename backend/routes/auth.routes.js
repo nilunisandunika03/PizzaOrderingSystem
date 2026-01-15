@@ -70,6 +70,26 @@ router.post('/register', authLimiter, [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        // Check if password validation failed
+        const passwordError = errors.array().find(err => err.path === 'password');
+        
+        if (passwordError) {
+            return res.status(400).json({ 
+                errors: errors.array(),
+                passwordGuidelines: {
+                    message: 'Your password does not meet the security requirements',
+                    requirements: [
+                        '✓ Minimum 8 characters',
+                        '✓ At least one uppercase letter (A-Z)',
+                        '✓ At least one lowercase letter (a-z)',
+                        '✓ At least one number (0-9)',
+                        '✓ At least one special character (@$!%*?&#)'
+                    ],
+                    example: 'Example: MyP@ssw0rd'
+                }
+            });
+        }
+        
         return res.status(400).json({ errors: errors.array() });
     }
 
