@@ -108,13 +108,60 @@ const startServer = async () => {
     try {
         await connectDB();
 
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
+            console.log(`Environment: ${process.env.NODE_ENV}`);
         });
+
+        // Prevent server from crashing on unhandled errors
+        server.on('error', (error) => {
+            if (error.code === 'EADDRINUSE') {
+                console.error(`Port ${PORT} is already in use`);
+                process.exit(1);
+            } else {
+                console.error('Server error:', error);
+            }
+        });
+
+        // Graceful shutdown
+        process.on('SIGTERM', () => {
+            console.log('SIGTERM signal received: closing HTTP server');
+            server.close(() => {
+                console.log('HTTP server closed');
+                process.exit(0);
+            });
+        });
+
+        process.on('SIGINT', () => {
+            console.log('\nSIGINT signal received: closing HTTP server');
+            server.close(() => {
+                console.log('HTTP server closed');
+                process.exit(0);
+            });
+        });
+
     } catch (error) {
         console.error('Failed to connect to the database. Server not started.', error);
         process.exit(1);
     }
 };
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit in development to keep server running
+    if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+    }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Don't exit in development to keep server running
+    if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+    }
+});
 
 startServer();
