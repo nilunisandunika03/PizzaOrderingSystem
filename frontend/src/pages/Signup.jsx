@@ -14,6 +14,7 @@ const Signup = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [passwordScore, setPasswordScore] = useState(0);
+    const [passwordGuidelines, setPasswordGuidelines] = useState(null);
 
     const { signup } = useAuth();
     // const navigate = useNavigate(); // We don't nav automatically, we show "Check Email"
@@ -42,6 +43,7 @@ const Signup = () => {
         e.preventDefault();
         setError('');
         setSuccess('');
+        setPasswordGuidelines(null);
 
         if (passwordScore < 3) {
             setError('Please choose a stronger password.');
@@ -59,6 +61,11 @@ const Signup = () => {
         } catch (err) {
             const errorData = err.response?.data;
             const errorMessage = errorData?.message || 'Failed to sign up';
+            
+            // Check for password guidelines
+            if (errorData?.passwordGuidelines) {
+                setPasswordGuidelines(errorData.passwordGuidelines);
+            }
             
             // Check if email already registered
             if (errorData?.suggestLogin) {
@@ -102,6 +109,23 @@ const Signup = () => {
                         )}
                     </div>
                 )}
+                
+                {passwordGuidelines && (
+                    <div className="alert warning password-guidelines">
+                        <h4 style={{ marginTop: 0, marginBottom: '10px' }}>
+                            🔒 {passwordGuidelines.message}
+                        </h4>
+                        <ul style={{ marginBottom: '10px', paddingLeft: '20px' }}>
+                            {passwordGuidelines.requirements.map((req, index) => (
+                                <li key={index} style={{ marginBottom: '5px' }}>{req}</li>
+                            ))}
+                        </ul>
+                        <p style={{ marginBottom: 0, fontStyle: 'italic', fontSize: '14px' }}>
+                            {passwordGuidelines.example}
+                        </p>
+                    </div>
+                )}
+                
                 {success && <div className="alert success">{success}</div>}
 
                 {!success && (
@@ -135,6 +159,29 @@ const Signup = () => {
                                 placeholder="••••••••"
                                 required
                             />
+                            
+                            {/* Password Requirements - Always Visible */}
+                            <div className="password-requirements">
+                                <p className="requirements-title">Password must contain:</p>
+                                <ul>
+                                    <li className={password.length >= 8 ? 'met' : ''}>
+                                        {password.length >= 8 ? '✓' : '○'} At least 8 characters
+                                    </li>
+                                    <li className={/[A-Z]/.test(password) ? 'met' : ''}>
+                                        {/[A-Z]/.test(password) ? '✓' : '○'} One uppercase letter (A-Z)
+                                    </li>
+                                    <li className={/[a-z]/.test(password) ? 'met' : ''}>
+                                        {/[a-z]/.test(password) ? '✓' : '○'} One lowercase letter (a-z)
+                                    </li>
+                                    <li className={/[0-9]/.test(password) ? 'met' : ''}>
+                                        {/[0-9]/.test(password) ? '✓' : '○'} One number (0-9)
+                                    </li>
+                                    <li className={/[@$!%*?&#]/.test(password) ? 'met' : ''}>
+                                        {/[@$!%*?&#]/.test(password) ? '✓' : '○'} One special character (@$!%*?&#)
+                                    </li>
+                                </ul>
+                            </div>
+                            
                             {password && (
                                 <div className="password-strength">
                                     <div className="strength-bar-bg">

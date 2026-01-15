@@ -130,6 +130,70 @@
     border: 1px solid #d1fae5;
 }
 
+.alert.warning {
+    background-color: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.password-guidelines {
+    text-align: left;
+}
+
+.password-guidelines h4 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.password-guidelines ul {
+    list-style-type: none;
+}
+
+.password-guidelines li {
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.password-requirements {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+}
+
+.password-requirements .requirements-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0 0 8px 0;
+}
+
+.password-requirements ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.password-requirements li {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s ease;
+}
+
+.password-requirements li:last-child {
+    margin-bottom: 0;
+}
+
+.password-requirements li.met {
+    color: #10b981;
+    font-weight: 500;
+}
+
 .btn-link {
     background: none;
     border: none;
