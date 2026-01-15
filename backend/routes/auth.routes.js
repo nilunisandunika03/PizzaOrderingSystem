@@ -58,7 +58,10 @@ router.post('/verify-captcha', (req, res) => {
 // 2. Register
 router.post('/register', authLimiter, [
     body('email').isEmail().withMessage('Invalid email format'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('password')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/)
+        .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
     body('fullName').notEmpty().withMessage('Full name is required'),
     body('captcha').notEmpty().withMessage('Captcha is required')
 ], async (req, res) => {
@@ -95,7 +98,7 @@ router.post('/register', authLimiter, [
         
         // IF Email DOES NOT Exist: Create the temporary user record
         const verification_token = crypto.randomBytes(32).toString('hex');
-        const verification_token_expires = Date.now() + 6 * 60 * 1000; // 6 minutes
+        const verification_token_expires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
         const userData = {
             email: email.toLowerCase(), // Ensure lowercase
@@ -119,7 +122,7 @@ router.post('/register', authLimiter, [
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
         await sendEmail(email, 'Verify your email', `
             <h3>Welcome to PizzaSlice!</h3>
-            <p>Please click the link below to verify your email address (expires in 6 minutes):</p>
+            <p>Please click the link below to verify your email address (expires in 10 minutes):</p>
             <a href="${verifyLink}">Verify Email</a>
         `);
 
@@ -155,7 +158,7 @@ router.post('/verify-email', authLimiter, async (req, res) => {
             return res.status(400).json({ message: 'Invalid verification token' });
         }
 
-        // Check if link is expired (6 minutes)
+        // Check if link is expired (10 minutes)
         if (user.verification_token_expires < Date.now()) {
             // If Expired: Show "Link expired. [Resend Verification Email]."
             return res.status(400).json({ 
@@ -199,16 +202,16 @@ router.post('/resend-verification', authLimiter, [
             return res.status(400).json({ message: 'Email is already verified. Please login.' });
         }
 
-        // Generate new verification token with 6-minute expiry
+        // Generate new verification token with 10-minute expiry
         const verification_token = crypto.randomBytes(32).toString('hex');
         user.verification_token = verification_token;
-        user.verification_token_expires = Date.now() + 6 * 60 * 1000; // 6 minutes
+        user.verification_token_expires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await user.save();
 
         const verifyLink = `http://localhost:5173/verify-email?token=${verification_token}`;
         await sendEmail(email, 'Verify your email', `
             <h3>Welcome to PizzaSlice!</h3>
-            <p>Please click the link below to verify your email address (expires in 6 minutes):</p>
+            <p>Please click the link below to verify your email address (expires in 10 minutes):</p>
             <a href="${verifyLink}">Verify Email</a>
         `);
 
