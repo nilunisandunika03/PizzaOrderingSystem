@@ -8,25 +8,58 @@ const featuredPizzas = [
         id: 1,
         name: "Classic Margherita",
         description: "San Marzano tomato sauce, fresh mozzarella di bufala, basil, extra virgin olive oil.",
-        price: 14.50,
+        base_price: 850,
         rating: 4.8,
-        image: pizzaImage
+        images: [pizzaImage],
+        average_rating: 4.8,
+        sizes: [
+            { name: 'Personal', price_modifier: 0 },
+            { name: 'Medium', price_modifier: 740 },
+            { name: 'Large', price_modifier: 2130 }
+        ],
+        crusts: [
+            { name: 'Pan', price_modifier: 0 },
+            { name: 'Ultimate Cheese', price_modifier: 600 },
+            { name: 'Sausage', price_modifier: 600 }
+        ]
     },
     {
         id: 2,
         name: "Double Pepperoni",
         description: "Crispy cup pepperoni, spicy tomato sauce, mozzarella, parmesan, oregano.",
-        price: 16.00,
+        base_price: 850,
         rating: 4.9,
-        image: pizzaImage
+        images: [pizzaImage],
+        average_rating: 4.9,
+        sizes: [
+            { name: 'Personal', price_modifier: 0 },
+            { name: 'Medium', price_modifier: 740 },
+            { name: 'Large', price_modifier: 2130 }
+        ],
+        crusts: [
+            { name: 'Pan', price_modifier: 0 },
+            { name: 'Ultimate Cheese', price_modifier: 600 },
+            { name: 'Sausage', price_modifier: 600 }
+        ]
     },
     {
         id: 3,
         name: "Truffle Mushroom",
         description: "Wild mushrooms, truffle cream base, thyme, mozzarella, garlic oil.",
-        price: 18.00,
+        base_price: 850,
         rating: 4.7,
-        image: pizzaImage
+        images: [pizzaImage],
+        average_rating: 4.7,
+        sizes: [
+            { name: 'Personal', price_modifier: 0 },
+            { name: 'Medium', price_modifier: 740 },
+            { name: 'Large', price_modifier: 2130 }
+        ],
+        crusts: [
+            { name: 'Pan', price_modifier: 0 },
+            { name: 'Ultimate Cheese', price_modifier: 600 },
+            { name: 'Sausage', price_modifier: 600 }
+        ]
     }
 ];
 
