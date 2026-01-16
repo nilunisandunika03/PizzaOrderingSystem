@@ -13,10 +13,13 @@ const { regenerateSession } = require('../middleware/security.middleware');
 const logger = require('../utils/logger');
 const csrf = require('csurf');
 
-// CSRF protection for state-changing auth operations
+// CSRF protection for state-changing auth operations - using cookie-based
 const csrfProtection = csrf({ 
-    cookie: false, 
-    sessionKey: 'csrfSecret' 
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+    }
 });
 
 // --- Helper Functions ---

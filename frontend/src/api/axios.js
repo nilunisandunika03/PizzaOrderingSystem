@@ -1,11 +1,23 @@
 import axios from 'axios';
 
+// Get API URL from environment or use default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+// Log configuration in development
+if (import.meta.env.DEV) {
+    console.log('[API] Configuration:', {
+        baseURL: API_URL,
+        environment: import.meta.env.MODE
+    });
+}
+
 const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
+    baseURL: API_URL,
     withCredentials: true, // Important for cookies
     headers: {
         'Content-Type': 'application/json'
-    }
+    },
+    timeout: 30000 // 30 second timeout
 });
 
 // CSRF Token Management
@@ -34,13 +46,20 @@ export const getCSRFToken = () => csrfToken;
 
 // Request Interceptor: Add CSRF token to all state-changing requests
 api.interceptors.request.use(
-    config => {
+    async config => {
         // Add CSRF token to POST, PUT, DELETE requests
         if (['post', 'put', 'delete'].includes(config.method.toLowerCase())) {
+            // If token not available, try to fetch it first
+            if (!csrfToken) {
+                console.warn('[CSRF] Token not available, fetching now...');
+                await initializeCSRF();
+            }
+            
             if (csrfToken) {
                 config.headers['X-CSRF-Token'] = csrfToken;
             } else {
-                console.warn('[CSRF] Token not available for request:', config.url);
+                console.error('[CSRF] Failed to obtain token for request:', config.url);
+                throw new Error('CSRF token not available. Please refresh the page.');
             }
         }
         return config;
@@ -50,7 +69,7 @@ api.interceptors.request.use(
     }
 );
 
-// Response Interceptor: Handle CSRF token errors
+// Response Interceptor: Handle errors globally
 api.interceptors.response.use(
     response => response,
     async error => {
@@ -68,9 +87,42 @@ api.interceptors.response.use(
                 return api.request(error.config);
             }
         }
+
+        // Handle session expiration
+        if (error.response?.status === 401) {
+            console.warn('[Auth] Session expired or unauthorized');
+            // Clear local auth state if needed
+            localStorage.removeItem('user');
+            // Redirect to login if not already there
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+            }
+        }
+
+        // Handle rate limiting
+        if (error.response?.status === 429) {
+            console.warn('[Rate Limit] Too many requests');
+            error.userMessage = 'Too many requests. Please try again in a few minutes.';
+        }
+
+        // Handle network errors
+        if (!error.response) {
+            console.error('[Network] Request failed - no response received');
+            error.userMessage = 'Network error. Please check your connection and try again.';
+        }
+
+        // Log errors in development
+        if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
+            console.error('[API Error]', {
+                url: error.config?.url,
+                method: error.config?.method,
+                status: error.response?.status,
+                data: error.response?.data
+            });
+        }
         
         return Promise.reject(error);
     }
-);
+);;
 
 export default api;
