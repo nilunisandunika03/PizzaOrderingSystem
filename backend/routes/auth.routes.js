@@ -11,6 +11,13 @@ const crypto = require('crypto');
 const { checkIPRegistrationLimit, getIPStats } = require('../utils/ipTracker');
 const { regenerateSession } = require('../middleware/security.middleware');
 const logger = require('../utils/logger');
+const csrf = require('csurf');
+
+// CSRF protection for state-changing auth operations
+const csrfProtection = csrf({ 
+    cookie: false, 
+    sessionKey: 'csrfSecret' 
+});
 
 // --- Helper Functions ---
 const generateOTP = () => otpGenerator.generate(6, { digits: true, lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
@@ -59,7 +66,7 @@ router.post('/verify-captcha', (req, res) => {
 });
 
 // 2. Register
-router.post('/register', authLimiter, [
+router.post('/register', csrfProtection, authLimiter, [
     body('email').isEmail().withMessage('Invalid email format'),
     body('password')
         .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
@@ -183,7 +190,7 @@ router.post('/register', authLimiter, [
 });
 
 
-router.post('/verify-email', authLimiter, async (req, res) => {
+router.post('/verify-email', csrfProtection, authLimiter, async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ message: 'Missing token' });
 
@@ -218,7 +225,7 @@ router.post('/verify-email', authLimiter, async (req, res) => {
 });
 
 // Resend Verification Email
-router.post('/resend-verification', authLimiter, [
+router.post('/resend-verification', csrfProtection, authLimiter, [
     body('email').isEmail().withMessage('Invalid email format')
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -260,7 +267,7 @@ router.post('/resend-verification', authLimiter, [
 });
 
 
-router.post('/login', loginLimiter, [
+router.post('/login', csrfProtection, loginLimiter, [
     body('email').isEmail(),
     body('password').notEmpty(),
     body('captcha').notEmpty()
@@ -336,7 +343,7 @@ router.post('/login', loginLimiter, [
 });
 
 // 5. Verify OTP & Finalize Login
-router.post('/verify-otp', loginLimiter, regenerateSession, async (req, res) => {
+router.post('/verify-otp', csrfProtection, loginLimiter, regenerateSession, async (req, res) => {
     const { otp } = req.body;
     const userId = req.session.preAuthUserId;
 
@@ -392,7 +399,7 @@ router.post('/verify-otp', loginLimiter, regenerateSession, async (req, res) => 
 });
 
 
-router.post('/logout', (req, res) => {
+router.post('/logout', csrfProtection, (req, res) => {
     req.session.destroy((err) => {
         if (err) return res.status(500).json({ message: 'Logout failed' });
         res.clearCookie('sessionId');

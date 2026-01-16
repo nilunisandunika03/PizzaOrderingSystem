@@ -80,6 +80,18 @@ app.use(session({
 app.use(deviceFingerprint); // Device fingerprinting for session binding
 app.use(sessionActivityTimeout); // Auto-logout on inactivity
 
+// CSRF Protection
+const csrf = require('csurf');
+const csrfProtection = csrf({ 
+    cookie: false, // Use session-based CSRF tokens
+    sessionKey: 'csrfSecret'
+});
+
+// CSRF token endpoint (must be before protected routes)
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
+
 // Placeholder route
 app.get('/', (req, res) => {
     res.json({
@@ -94,6 +106,23 @@ app.get('/', (req, res) => {
             payments: '/api/payments'
         }
     });
+});
+
+// CSRF error handler
+app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        const logger = require('./utils/logger');
+        logger.security('CSRF token validation failed', {
+            ip: req.ip,
+            path: req.path,
+            method: req.method
+        });
+        return res.status(403).json({ 
+            message: 'Invalid CSRF token. Please refresh the page.',
+            errorCode: 'CSRF_VALIDATION_FAILED'
+        });
+    }
+    next(err);
 });
 
 // Global error handler
@@ -116,12 +145,13 @@ const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const paymentRoutes = require('./routes/payment.routes');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payments', paymentRoutes);
+// Routes (CSRF protection applied to state-changing operations)
+app.use('/api/auth', authRoutes); // CSRF added per route in auth.routes.js
+app.use('/api/products', productRoutes); // Read-only, no CSRF needed
+app.use('/api/categories', categoryRoutes); // Read-only, no CSRF needed
+app.use('/api/cart', csrfProtection, cartRoutes); // CSRF protected
+app.use('/api/orders', csrfProtection, orderRoutes); // CSRF protected
+app.use('/api/payments', csrfProtection, paymentRoutes); // CSRF protected
 
 const startServer = async () => {
     try {

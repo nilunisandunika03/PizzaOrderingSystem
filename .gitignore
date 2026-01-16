@@ -3,5 +3,3 @@ node_modules/
 .DS_Store
 dist/
 build/
-backend/database/database.sqlite
-database/database.sqlite
